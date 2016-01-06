@@ -10,6 +10,9 @@ namespace fxcdm {
 void
 set_platform_api(const GMPPlatformAPI *api);
 
+const GMPPlatformAPI *
+get_platform_api();
+
 class WidevineAdapter final : public GMPDecryptor
 {
 public:

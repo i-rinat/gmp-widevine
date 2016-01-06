@@ -155,4 +155,10 @@ set_platform_api(const GMPPlatformAPI *api)
     platform_api = api;
 }
 
+const GMPPlatformAPI *
+get_platform_api()
+{
+    return platform_api;
+}
+
 } // namespace fxcdm

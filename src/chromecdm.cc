@@ -3,6 +3,7 @@
 #include <string>
 #include <boost/format.hpp>
 #include <chrono>
+#include "firefoxcdm.hh"
 
 
 using std::string;
@@ -31,13 +32,11 @@ public:
     GetCurrentWallTime() override
     {
         LOGD << "crcdm::Host::GetCurrentWallTime\n";
-        namespace chrono = std::chrono;
 
-        auto now = chrono::high_resolution_clock::now().time_since_epoch();
-        auto microsecs = chrono::duration_cast<chrono::microseconds>(now).count();
-        double d = microsecs / 1e6;
+        int64_t milliseconds = 0;
+        fxcdm::get_platform_api()->getcurrenttime(&milliseconds);
 
-        return d;
+        return milliseconds / 1e3;
     }
 
     virtual void
