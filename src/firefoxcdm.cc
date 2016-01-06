@@ -2,6 +2,7 @@
 #include <string>
 #include <boost/format.hpp>
 #include "firefoxcdm.hh"
+#include "chromecdm.hh"
 
 
 namespace fxcdm {
@@ -12,12 +13,26 @@ using boost::format;
 
 const GMPPlatformAPI *platform_api = nullptr;
 
+struct WidevineAdapter::Impl {
+    GMPDecryptorCallback           *decryptor_cb_ = nullptr;
+    cdm::ContentDecryptionModule   *crcdm = nullptr;
+};
+
+WidevineAdapter::WidevineAdapter()
+    : priv(new Impl)
+{
+}
+
+WidevineAdapter::~WidevineAdapter()
+{
+}
+
 void
 WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 {
     cout << format("WidevineAdapter::Init aCallback=%1%\n") % aCallback;
-    decryptor_cb_ = aCallback;
-    decryptor_cb_->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
+    priv->decryptor_cb_ = aCallback;
+    priv->decryptor_cb_->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
 }
 
 void
@@ -31,9 +46,14 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
             aInitDataTypeSize % aInitData % aInitDataSize % aSessionType;
 
+    if (!priv->decryptor_cb_) {
+        cout << "   no decryptor_cb_ yet\n";
+        return;
+    }
+
     string session_id {"hello, world"};
-    decryptor_cb_->SetSessionId(aCreateSessionToken, session_id.c_str(), session_id.size());
-    decryptor_cb_->ResolvePromise(aPromiseId);
+    priv->decryptor_cb_->SetSessionId(aCreateSessionToken, session_id.c_str(), session_id.size());
+    priv->decryptor_cb_->ResolvePromise(aPromiseId);
 }
 
 void

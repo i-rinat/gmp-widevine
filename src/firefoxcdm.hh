@@ -1,5 +1,6 @@
 #include <gmp/gmp-decryption.h>
 #include <gmp/gmp-async-shutdown.h>
+#include <memory>
 
 
 namespace fxcdm {
@@ -10,6 +11,11 @@ set_platform_api(const GMPPlatformAPI *api);
 class WidevineAdapter final : public GMPDecryptor
 {
 public:
+    WidevineAdapter();
+
+    virtual
+    ~WidevineAdapter();
+
     virtual void
     Init(GMPDecryptorCallback *aCallback) override;
 
@@ -42,7 +48,8 @@ public:
     DecryptingComplete() override;
 
 private:
-    GMPDecryptorCallback *decryptor_cb_ = nullptr;
+    struct Impl;
+    std::unique_ptr<Impl> priv;
 };
 
 class WidevineAdapterAsyncShutdown final : public GMPAsyncShutdown
