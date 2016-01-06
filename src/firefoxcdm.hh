@@ -2,6 +2,11 @@
 #include <gmp-async-shutdown.h>
 
 
+namespace fxcdm {
+
+void
+set_platform_api(const GMPPlatformAPI *api);
+
 class WidevineAdapter final : public GMPDecryptor
 {
 public:
@@ -53,3 +58,5 @@ public:
 private:
     GMPAsyncShutdownHost *host_api_;
 };
+
+} // namespace fxcdm

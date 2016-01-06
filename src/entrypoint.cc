@@ -11,16 +11,13 @@ using std::string;
 using boost::format;
 
 
-const GMPPlatformAPI *platform_api = nullptr;
-
-
 extern "C" {
 
 GMPErr
 GMPInit(const GMPPlatformAPI *aPlatformAPI)
 {
     cout << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
-    platform_api = aPlatformAPI;
+    fxcdm::set_platform_api(aPlatformAPI);
     return GMPNoErr;
 }
 
@@ -33,11 +30,11 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 
     try {
         if (api_name == GMP_API_DECRYPTOR) {
-            *aPluginAPI = new WidevineAdapter();
+            *aPluginAPI = new fxcdm::WidevineAdapter();
             return GMPNoErr;
 
         } else if (api_name == GMP_API_ASYNC_SHUTDOWN) {
-            *aPluginAPI = new WidevineAdapterAsyncShutdown(
+            *aPluginAPI = new fxcdm::WidevineAdapterAsyncShutdown(
                                     static_cast<GMPAsyncShutdownHost *>(aHostAPI));
             return GMPNoErr;
 

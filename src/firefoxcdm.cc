@@ -4,10 +4,13 @@
 #include "firefoxcdm.hh"
 
 
+namespace fxcdm {
+
 using std::cout;
 using std::string;
 using boost::format;
 
+const GMPPlatformAPI *platform_api = nullptr;
 
 void
 WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
@@ -98,3 +101,11 @@ WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
 {
     cout << "WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
 }
+
+void
+set_platform_api(const GMPPlatformAPI *api)
+{
+    platform_api = api;
+}
+
+} // namespace fxcdm
