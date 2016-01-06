@@ -1,4 +1,5 @@
 #include <string>
+#include <vector>
 #include <boost/format.hpp>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
@@ -8,9 +9,15 @@
 namespace fxcdm {
 
 using std::string;
+using std::vector;
 using boost::format;
 
 const GMPPlatformAPI *platform_api = nullptr;
+
+class DecryptedBlockImpl: public cdm::DecryptedBlock
+{
+
+};
 
 struct WidevineAdapter::Impl {
     GMPDecryptorCallback           *decryptor_cb_ = nullptr;
@@ -124,6 +131,31 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
             aMetadata;
     LOGD << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
+
+    cdm::InputBuffer    encrypted_buffer;
+    DecryptedBlockImpl  decrypted_buffer;
+
+    encrypted_buffer.data =      aBuffer->Data();
+    encrypted_buffer.data_size = aBuffer->Size();
+
+    encrypted_buffer.key_id =      aMetadata->KeyId();
+    encrypted_buffer.key_id_size = aMetadata->KeyIdSize();
+
+    encrypted_buffer.iv =      aMetadata->IV();
+    encrypted_buffer.iv_size = aMetadata->IVSize();
+
+    encrypted_buffer.num_subsamples = aMetadata->NumSubsamples();
+    vector<cdm::SubsampleEntry> subsamples;
+
+    for (uint32_t k = 0; k < encrypted_buffer.num_subsamples; k ++)
+        subsamples.emplace_back(aMetadata->ClearBytes()[k], aMetadata->CipherBytes()[k]);
+
+    encrypted_buffer.subsamples = &subsamples[0];
+
+    platform_api->getcurrenttime(&encrypted_buffer.timestamp);
+    encrypted_buffer.timestamp *= 1000;
+
+    priv->crcdm_->Decrypt(encrypted_buffer, &decrypted_buffer);
 }
 
 void
