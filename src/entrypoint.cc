@@ -2,9 +2,7 @@
 #include <string>
 #include <boost/format.hpp>
 #include <gmp-errors.h>
-#include <gmp-platform.h>
-#include <gmp-decryption.h>
-#include <gmp-async-shutdown.h>
+#include <gmp-entrypoints.h>
 #include "firefoxcdm.hh"
 
 
@@ -53,9 +51,18 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 }
 
 void
-GMPShutdown(void)
+GMPShutdown()
 {
     cout << format("%1%\n") % __func__;
 }
 
 } // extern "C"
+
+namespace {
+
+// ensure signatures are correct
+GMPInitFunc     gmp_init_ptr     __attribute__((unused)) = GMPInit ;
+GMPGetAPIFunc   gmp_get_api_ptr  __attribute__((unused)) = GMPGetAPI;
+GMPShutdownFunc gmp_shutdown_ptr __attribute__((unused)) = GMPShutdown;
+
+} // anonymous namespace
