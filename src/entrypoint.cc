@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <boost/format.hpp>
+#include <dlfcn.h>
 #include <gmp-errors.h>
 #include <gmp-entrypoints.h>
 #include "firefoxcdm.hh"
@@ -13,11 +14,19 @@ using boost::format;
 
 extern "C" {
 
+const char *
+GetCdmVersion();
+
 GMPErr
 GMPInit(const GMPPlatformAPI *aPlatformAPI)
 {
     cout << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
     fxcdm::set_platform_api(aPlatformAPI);
+
+    void *handle = dlopen("libwidevinecdm.so", RTLD_LAZY);
+    cout << "GMPInit: handle = " << handle << "\n";
+    cout << "GetCdmVersion -> " << GetCdmVersion() << "\n";
+
     return GMPNoErr;
 }
 
