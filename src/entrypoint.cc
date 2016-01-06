@@ -2,8 +2,8 @@
 #include <string>
 #include <boost/format.hpp>
 #include <dlfcn.h>
-#include <gmp-errors.h>
-#include <gmp-entrypoints.h>
+#include <gmp/gmp-errors.h>
+#include <gmp/gmp-entrypoints.h>
 #include "firefoxcdm.hh"
 
 

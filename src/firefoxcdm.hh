@@ -1,5 +1,5 @@
-#include <gmp-decryption.h>
-#include <gmp-async-shutdown.h>
+#include <gmp/gmp-decryption.h>
+#include <gmp/gmp-async-shutdown.h>
 
 
 namespace fxcdm {
