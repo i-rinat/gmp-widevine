@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include <boost/format.hpp>
 #include <dlfcn.h>
@@ -6,9 +5,9 @@
 #include <gmp/gmp-entrypoints.h>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
+#include "log.hh"
 
 
-using std::cout;
 using std::string;
 using boost::format;
 
@@ -18,7 +17,7 @@ extern "C" {
 GMPErr
 GMPInit(const GMPPlatformAPI *aPlatformAPI)
 {
-    cout << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
+    LOGD << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
     fxcdm::set_platform_api(aPlatformAPI);
 
     crcdm::Initialize();
@@ -29,7 +28,7 @@ GMPInit(const GMPPlatformAPI *aPlatformAPI)
 GMPErr
 GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 {
-    cout << format("%1% apiName=%2%, aHostAPI=%3%\n") % __func__ % apiName % aHostAPI;
+    LOGD << format("%1% apiName=%2%, aHostAPI=%3%\n") % __func__ % apiName % aHostAPI;
 
     string api_name(apiName);
 
@@ -47,7 +46,7 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
             return GMPNotImplementedErr;
         }
     } catch (std::exception &e) {
-        cout << format("%1% something bad happened: %2%\n") % __func__ % e.what();
+        LOGD << format("%1% something bad happened: %2%\n") % __func__ % e.what();
         return GMPNotImplementedErr;
     }
 }
@@ -55,7 +54,7 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 void
 GMPShutdown()
 {
-    cout << format("%1%\n") % __func__;
+    LOGD << format("%1%\n") % __func__;
 }
 
 } // extern "C"

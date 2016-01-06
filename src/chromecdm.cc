@@ -1,10 +1,9 @@
 #include "chromecdm.hh"
-#include <iostream>
+#include "log.hh"
 #include <string>
 #include <boost/format.hpp>
 
 
-using std::cout;
 using std::string;
 using boost::format;
 
@@ -14,7 +13,7 @@ namespace {
 void *
 get_cdm_host_func(int host_interface_version, void *user_data)
 {
-    cout << format("get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
+    LOGD << format("get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
             host_interface_version % user_data;
 
     return nullptr;
@@ -28,10 +27,8 @@ namespace crcdm {
 void
 Initialize()
 {
-    cout << "crcdm::Initialize before\n";
+    LOGD << "crcdm::Initialize\n";
     INITIALIZE_CDM_MODULE();
-    cout << "crcdm::Initialize after\n";
-    cout << "GetCdmVersion -> " << GetCdmVersion() << "\n";
 }
 
 void
@@ -47,7 +44,7 @@ CreateInstance()
 
     void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
                                   key_system.length(), get_cdm_host_func, (void *)0x12345);
-    cout << "crcdm::CreateInstance -> " << ptr << "\n";
+    LOGD << "crcdm::CreateInstance -> " << ptr << "\n";
 
     return static_cast<cdm::ContentDecryptionModule *>(ptr);
 }

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gmp/gmp-decryption.h>
 #include <gmp/gmp-async-shutdown.h>
 #include <memory>

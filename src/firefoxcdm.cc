@@ -1,13 +1,12 @@
-#include <iostream>
 #include <string>
 #include <boost/format.hpp>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
+#include "log.hh"
 
 
 namespace fxcdm {
 
-using std::cout;
 using std::string;
 using boost::format;
 
@@ -15,7 +14,7 @@ const GMPPlatformAPI *platform_api = nullptr;
 
 struct WidevineAdapter::Impl {
     GMPDecryptorCallback           *decryptor_cb_ = nullptr;
-    cdm::ContentDecryptionModule   *crcdm = nullptr;
+    cdm::ContentDecryptionModule   *crcdm_ = nullptr;
 };
 
 WidevineAdapter::WidevineAdapter()
@@ -30,7 +29,7 @@ WidevineAdapter::~WidevineAdapter()
 void
 WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 {
-    cout << format("WidevineAdapter::Init aCallback=%1%\n") % aCallback;
+    LOGD << format("WidevineAdapter::Init aCallback=%1%\n") % aCallback;
     priv->decryptor_cb_ = aCallback;
     priv->decryptor_cb_->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
 }
@@ -41,25 +40,27 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
                                const uint8_t *aInitData, uint32_t aInitDataSize,
                                GMPSessionType aSessionType)
 {
-    cout << format("WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
+    LOGD << format("WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
             "aInitDataType=%s, aInitDataTypeSize=%u, aInitData=%p, aInitDataSize=%u, "
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
             aInitDataTypeSize % aInitData % aInitDataSize % aSessionType;
 
     if (!priv->decryptor_cb_) {
-        cout << "   no decryptor_cb_ yet\n";
+        LOGD << "   no decryptor_cb_ yet\n";
         return;
     }
 
     string session_id {"hello, world"};
     priv->decryptor_cb_->SetSessionId(aCreateSessionToken, session_id.c_str(), session_id.size());
     priv->decryptor_cb_->ResolvePromise(aPromiseId);
+
+    priv->crcdm_ = crcdm::CreateInstance();
 }
 
 void
 WidevineAdapter::LoadSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
 {
-    cout << "WidevineAdapter::LoadSession\n";
+    LOGD << "WidevineAdapter::LoadSession\n";
 }
 
 void
@@ -67,42 +68,42 @@ WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
                                uint32_t aSessionIdLength, const uint8_t *aResponse,
                                uint32_t aResponseSize)
 {
-    cout << "WidevineAdapter::UpdateSession\n";
+    LOGD << "WidevineAdapter::UpdateSession\n";
 }
 
 void
 WidevineAdapter::CloseSession(uint32_t aPromiseId, const char *aSessionId,
                               uint32_t aSessionIdLength)
 {
-    cout << "WidevineAdapter::CloseSession\n";
+    LOGD << "WidevineAdapter::CloseSession\n";
 }
 
 void
 WidevineAdapter::RemoveSession(uint32_t aPromiseId, const char *aSessionId,
                                uint32_t aSessionIdLength)
 {
-    cout << "WidevineAdapter::RemoveSession\n";
+    LOGD << "WidevineAdapter::RemoveSession\n";
 }
 
 void
 WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServerCert,
                                       uint32_t aServerCertSize)
 {
-    cout << "WidevineAdapter::SetServerCertificate\n";
+    LOGD << "WidevineAdapter::SetServerCertificate\n";
 }
 
 void
 WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
 {
-    cout << format("WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer % aMetadata;
-    cout << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
+    LOGD << format("WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer % aMetadata;
+    LOGD << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
 }
 
 void
 WidevineAdapter::DecryptingComplete()
 {
-    cout << "WidevineAdapter::DecryptingComplete\n";
+    LOGD << "WidevineAdapter::DecryptingComplete\n";
 }
 
 
@@ -114,12 +115,12 @@ WidevineAdapterAsyncShutdown::WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost 
 void
 WidevineAdapterAsyncShutdown::BeginShutdown()
 {
-    cout << "WidevineAdapterAsyncShutdown::BeginShutdown\n";
+    LOGD << "WidevineAdapterAsyncShutdown::BeginShutdown\n";
 }
 
 WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
 {
-    cout << "WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
+    LOGD << "WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
 }
 
 void
