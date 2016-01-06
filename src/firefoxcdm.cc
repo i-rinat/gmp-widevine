@@ -29,7 +29,7 @@ WidevineAdapter::~WidevineAdapter()
 void
 WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 {
-    LOGD << format("WidevineAdapter::Init aCallback=%1%\n") % aCallback;
+    LOGD << format("fxcdm::WidevineAdapter::Init aCallback=%1%\n") % aCallback;
     priv->decryptor_cb_ = aCallback;
     priv->decryptor_cb_->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
 }
@@ -40,7 +40,7 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
                                const uint8_t *aInitData, uint32_t aInitDataSize,
                                GMPSessionType aSessionType)
 {
-    LOGD << format("WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
+    LOGD << format("fxcdm::WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
             "aInitDataType=%s, aInitDataTypeSize=%u, aInitData=%p, aInitDataSize=%u, "
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
             aInitDataTypeSize % aInitData % aInitDataSize % aSessionType;
@@ -60,7 +60,7 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
 void
 WidevineAdapter::LoadSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
 {
-    LOGD << "WidevineAdapter::LoadSession\n";
+    LOGD << "fxcdm::WidevineAdapter::LoadSession\n";
 }
 
 void
@@ -68,34 +68,35 @@ WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
                                uint32_t aSessionIdLength, const uint8_t *aResponse,
                                uint32_t aResponseSize)
 {
-    LOGD << "WidevineAdapter::UpdateSession\n";
+    LOGD << "fxcdm::WidevineAdapter::UpdateSession\n";
 }
 
 void
 WidevineAdapter::CloseSession(uint32_t aPromiseId, const char *aSessionId,
                               uint32_t aSessionIdLength)
 {
-    LOGD << "WidevineAdapter::CloseSession\n";
+    LOGD << "fxcdm::WidevineAdapter::CloseSession\n";
 }
 
 void
 WidevineAdapter::RemoveSession(uint32_t aPromiseId, const char *aSessionId,
                                uint32_t aSessionIdLength)
 {
-    LOGD << "WidevineAdapter::RemoveSession\n";
+    LOGD << "fxcdm::WidevineAdapter::RemoveSession\n";
 }
 
 void
 WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServerCert,
                                       uint32_t aServerCertSize)
 {
-    LOGD << "WidevineAdapter::SetServerCertificate\n";
+    LOGD << "fxcdm::WidevineAdapter::SetServerCertificate\n";
 }
 
 void
 WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
 {
-    LOGD << format("WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer % aMetadata;
+    LOGD << format("fxcdm::WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
+            aMetadata;
     LOGD << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
 }
@@ -103,7 +104,7 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
 void
 WidevineAdapter::DecryptingComplete()
 {
-    LOGD << "WidevineAdapter::DecryptingComplete\n";
+    LOGD << "fxcdm::WidevineAdapter::DecryptingComplete\n";
 }
 
 
@@ -115,12 +116,12 @@ WidevineAdapterAsyncShutdown::WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost 
 void
 WidevineAdapterAsyncShutdown::BeginShutdown()
 {
-    LOGD << "WidevineAdapterAsyncShutdown::BeginShutdown\n";
+    LOGD << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown\n";
 }
 
 WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
 {
-    LOGD << "WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
+    LOGD << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
 }
 
 void
