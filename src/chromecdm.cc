@@ -2,6 +2,7 @@
 #include "log.hh"
 #include <string>
 #include <boost/format.hpp>
+#include <chrono>
 
 
 using std::string;
@@ -30,7 +31,13 @@ public:
     GetCurrentWallTime() override
     {
         LOGD << "crcdm::Host::GetCurrentWallTime\n";
-        return cdm::Time();
+        namespace chrono = std::chrono;
+
+        auto now = chrono::high_resolution_clock::now().time_since_epoch();
+        auto microsecs = chrono::duration_cast<chrono::microseconds>(now).count();
+        double d = microsecs / 1e6;
+
+        return d;
     }
 
     virtual void
