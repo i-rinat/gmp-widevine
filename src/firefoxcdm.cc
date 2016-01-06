@@ -55,6 +55,31 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
     priv->decryptor_cb_->ResolvePromise(aPromiseId);
 
     priv->crcdm_ = crcdm::CreateInstance();
+    if (!priv->crcdm_) {
+        LOGD << "   failed to create cdm::ContentDecryptionModule instance\n";
+        return;
+    }
+
+    priv->crcdm_->Initialize(true, true); // TODO: allow_distinctive_identifier?
+
+    string init_data_type_str {aInitDataType, aInitDataTypeSize};
+    enum cdm::InitDataType init_data_type = cdm::kCenc;
+
+    if (init_data_type_str == "cenc") {
+        init_data_type = cdm::kCenc;
+    } else if (init_data_type_str == "keyids") {
+        init_data_type = cdm::kKeyIds;
+    } else if (init_data_type_str == "webm") {
+        init_data_type = cdm::kWebM;
+    } else {
+        LOGD << "   unknown init data type '" << init_data_type_str << "'\n";
+    }
+
+    priv->crcdm_->CreateSessionAndGenerateRequest(
+                        aPromiseId,
+                        aSessionType == kGMPPersistentSession ? cdm::kPersistentLicense
+                                                              : cdm::kTemporary,
+                        init_data_type, aInitData, aInitDataSize);
 }
 
 void

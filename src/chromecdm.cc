@@ -173,7 +173,7 @@ CreateInstance()
 
     void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
                                   key_system.length(), get_cdm_host_func, (void *)0x12345);
-    LOGD << "crcdm::CreateInstance -> " << ptr << "\n";
+    LOGD << "calling crcdm::CreateInstance gives " << ptr << "\n";
 
     return static_cast<cdm::ContentDecryptionModule *>(ptr);
 }
