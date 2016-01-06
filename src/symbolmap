@@ -1,0 +1,8 @@
+{
+    global:
+        GMPInit;
+        GMPGetAPI;
+        GMPShutdown;
+    local:
+        *;
+};

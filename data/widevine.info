@@ -1,0 +1,5 @@
+Name: widevine
+Description: Widevine Gecko Media Plugin Adapter
+Version: 1
+APIs: eme-decrypt-v8[com.widevine.alpha]
+Libraries: libwidevinecdm.so
