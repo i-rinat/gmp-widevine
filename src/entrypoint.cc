@@ -5,6 +5,7 @@
 #include <gmp/gmp-errors.h>
 #include <gmp/gmp-entrypoints.h>
 #include "firefoxcdm.hh"
+#include "chromecdm.hh"
 
 
 using std::cout;
@@ -14,18 +15,13 @@ using boost::format;
 
 extern "C" {
 
-const char *
-GetCdmVersion();
-
 GMPErr
 GMPInit(const GMPPlatformAPI *aPlatformAPI)
 {
     cout << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
     fxcdm::set_platform_api(aPlatformAPI);
 
-    void *handle = dlopen("libwidevinecdm.so", RTLD_LAZY);
-    cout << "GMPInit: handle = " << handle << "\n";
-    cout << "GetCdmVersion -> " << GetCdmVersion() << "\n";
+    crcdm::Initialize();
 
     return GMPNoErr;
 }
