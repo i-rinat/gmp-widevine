@@ -3,4 +3,5 @@
 #include <iostream>
 
 
-#define LOGD    std::cout << "gmp-widevine: "
+#define LOGF    std::cout << "gmp-widevine/F: "
+#define LOGZ    std::cout << "gmp-widevine/Z: "
