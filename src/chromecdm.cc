@@ -59,7 +59,7 @@ public:
     virtual cdm::Time
     GetCurrentWallTime() override
     {
-        LOGF << "crcdm::Host::GetCurrentWallTime\n";
+        LOGF << "crcdm::Host::GetCurrentWallTime (void)\n";
 
         int64_t milliseconds = 0;
         fxcdm::get_platform_api()->getcurrenttime(&milliseconds);
@@ -71,7 +71,8 @@ public:
     OnResolveNewSessionPromise(uint32_t promise_id, const char *session_id,
                                uint32_t session_id_size) override
     {
-        LOGZ << "crcdm::Host::OnResolveNewSessionPromise\n";
+        LOGZ << format("crcdm::Host::OnResolveNewSessionPromise promise_id=%1%, session_id=%2%\n")
+                % promise_id % string(session_id, session_id_size);
     }
 
     virtual void
@@ -93,7 +94,11 @@ public:
                      const char *legacy_destination_url,
                      uint32_t legacy_destination_url_length) override
     {
-        LOGZ << "crcdm::Host::OnSessionMessage\n";
+        LOGZ << format("crcdm::Host::OnSessionMessage session_id=%1%, message_type=%2%, "
+                "message=%3%, message_size=%4%, legacy_destination_url=%5%\n") %
+                string(session_id, session_id_size) % message_type %
+                static_cast<const void *>(message) % message_size %
+                string(legacy_destination_url, legacy_destination_url_length);
     }
 
     virtual void
@@ -195,7 +200,7 @@ Deinitialize()
 cdm::ContentDecryptionModule *
 CreateInstance(GMPDecryptorCallback *decryptor_cb)
 {
-    LOGF << "crcdm::CreateInstance\n";
+    LOGF << format("crcdm::CreateInstance decryptor_cb=%p\n") % decryptor_cb;
 
     const string key_system {"com.widevine.alpha"};
 

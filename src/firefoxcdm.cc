@@ -75,7 +75,7 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
     LOGF << format("fxcdm::WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
             "aInitDataType=%s, aInitDataTypeSize=%u, aInitData=%p, aInitDataSize=%u, "
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
-            aInitDataTypeSize % aInitData % aInitDataSize % aSessionType;
+            aInitDataTypeSize % static_cast<const void *>(aInitData) % aInitDataSize % aSessionType;
 
     if (!priv->decryptor_cb_) {
         LOGZ << "   no decryptor_cb_ yet\n";
