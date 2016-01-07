@@ -81,7 +81,9 @@ public:
     virtual void
     OnResolvePromise(uint32_t promise_id) override
     {
-        LOGZ << format("crcdm::Host::OnResolvePromise promise_id=%1%\n") % promise_id;
+        LOGF << format("crcdm::Host::OnResolvePromise promise_id=%1%\n") % promise_id;
+
+        decryptor_cb_->ResolvePromise(promise_id);
     }
 
     virtual void
