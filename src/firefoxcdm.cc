@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <boost/format.hpp>
+#include <string.h>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
 #include "log.hh"
@@ -16,6 +17,7 @@ const GMPPlatformAPI *platform_api = nullptr;
 
 class DecryptedBlockImpl final : public cdm::DecryptedBlock
 {
+public:
    virtual void
    SetDecryptedBuffer(cdm::Buffer *buffer) override
    {
@@ -154,13 +156,12 @@ WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServe
 void
 WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
 {
-    LOGZ << format("fxcdm::WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
+    LOGF << format("fxcdm::WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
             aMetadata;
-    LOGZ << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
+    LOGF << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
 
     cdm::InputBuffer    encrypted_buffer;
-    DecryptedBlockImpl  decrypted_buffer;
 
     encrypted_buffer.data =      aBuffer->Data();
     encrypted_buffer.data_size = aBuffer->Size();
@@ -182,7 +183,16 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
     platform_api->getcurrenttime(&encrypted_buffer.timestamp);
     encrypted_buffer.timestamp *= 1000;
 
-    priv->crcdm_->Decrypt(encrypted_buffer, &decrypted_buffer);
+    DecryptedBlockImpl decrypted_block;
+    priv->crcdm_->Decrypt(encrypted_buffer, &decrypted_block);
+
+    auto decrypted_buffer = decrypted_block.DecryptedBuffer();
+
+    aBuffer->Resize(decrypted_buffer->Size());
+    memcpy(aBuffer->Data(), decrypted_buffer->Data(), decrypted_buffer->Size());
+
+    // TODO: error handling
+    priv->decryptor_cb_->Decrypted(aBuffer, GMPNoErr);
 }
 
 void
