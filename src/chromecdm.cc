@@ -41,32 +41,85 @@ private:
     uint32_t sz = 0;
 };
 
+class GMPRecordClientImpl final : public GMPRecordClient {
+private:
+    cdm::FileIOClient::Status
+    to_FileIOClient_Status(GMPErr aStatus)
+    {
+        switch (aStatus) {
+        case GMPNoErr:       return cdm::FileIOClient::kSuccess;
+        case GMPRecordInUse: return cdm::FileIOClient::kInUse;
+        default:             return cdm::FileIOClient::kError;
+        }
+    }
+
+public:
+    virtual void
+    OpenComplete(GMPErr aStatus) override
+    {
+        LOGF << format("fxcdm::GMPRecordClientImpl::OpenComplete aStatus=%1%\n") % aStatus;
+        file_io_client_->OnOpenComplete(to_FileIOClient_Status(aStatus));
+    }
+
+    virtual void
+    ReadComplete(GMPErr aStatus, const uint8_t *aData, uint32_t aDataSize) override
+    {
+        LOGF << format("fxcdm::GMPRecordClientImpl::ReadComplete aStatus=%1%, aData=%2%, "
+                "aDataSize=%3%\n") % aStatus % static_cast<const void *>(aData) % aDataSize;
+        file_io_client_->OnReadComplete(to_FileIOClient_Status(aStatus), aData, aDataSize);
+    }
+
+    virtual void
+    WriteComplete(GMPErr aStatus) override
+    {
+        LOGF << format("fxcdm::GMPRecordClientImpl::WriteComplete aStatus=%1%\n") % aStatus;
+        file_io_client_->OnWriteComplete(to_FileIOClient_Status(aStatus));
+    }
+
+    void
+    set_file_io_client(cdm::FileIOClient *file_io_client)
+    {
+        file_io_client_ = file_io_client;
+    }
+
+private:
+    cdm::FileIOClient   *file_io_client_ = nullptr;
+};
+
 class FileIO final : public cdm::FileIO {
 public:
     virtual void
     Open(const char *file_name, uint32_t file_name_size) override
     {
-        LOGZ << format("crcdm::FileIO::Open file_name=%1%, file_name_size=%2%\n") %
+        LOGF << format("crcdm::FileIO::Open file_name=%1%, file_name_size=%2%\n") %
                 string(file_name, file_name_size) % file_name_size;
+
+        fxcdm::get_platform_api()->createrecord(file_name, file_name_size, &rec_, &rec_client_);
+        rec_client_.set_file_io_client(file_io_client_);
+        rec_->Open();
     }
 
     virtual void
     Read() override
     {
-        LOGZ << "crcdm::FileIO::Read (void)\n";
+        LOGF << "crcdm::FileIO::Read (void)\n";
+        rec_->Read();
     }
 
     virtual void
     Write(const uint8_t *data, uint32_t data_size) override
     {
-        LOGZ << format("crcdm::FileIO::Write data=%1%, data_size=%2%\n") %
+        LOGF << format("crcdm::FileIO::Write data=%1%, data_size=%2%\n") %
                 static_cast<const void *>(data) % data_size;
+        rec_->Write(data, data_size);
     }
 
     virtual void
     Close() override
     {
-        LOGZ << "crcdm::FileIO::Close (void)\n";
+        LOGF << "crcdm::FileIO::Close (void)\n";
+        rec_->Close();
+        delete this;
     }
 
     FileIO(cdm::FileIOClient *file_io_client)
@@ -74,7 +127,9 @@ public:
     {}
 
 private:
-    cdm::FileIOClient *file_io_client_;
+    cdm::FileIOClient   *file_io_client_;
+    GMPRecord           *rec_;
+    GMPRecordClientImpl  rec_client_;
 };
 
 
