@@ -14,6 +14,10 @@ void
 Deinitialize();
 
 cdm::ContentDecryptionModule *
-CreateInstance(GMPDecryptorCallback *decryptor_cb, uint32_t create_session_token);
+get();
+
+void
+set_create_session_token(uint32_t create_session_token);
+
 
 } // namespace crcdm

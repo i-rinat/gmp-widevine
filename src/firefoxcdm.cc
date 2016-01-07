@@ -13,7 +13,15 @@ using std::string;
 using std::vector;
 using boost::format;
 
+
 const GMPPlatformAPI *platform_api = nullptr;
+GMPDecryptorCallback *host_interface = nullptr;
+
+GMPDecryptorCallback *
+host()
+{
+    return host_interface;
+}
 
 class DecryptedBlockImpl final : public cdm::DecryptedBlock
 {
@@ -53,8 +61,7 @@ private:
 
 
 struct WidevineAdapter::Impl {
-    GMPDecryptorCallback           *decryptor_cb_ = nullptr;
-    cdm::ContentDecryptionModule   *crcdm_ = nullptr;
+    int dummy;
 };
 
 WidevineAdapter::WidevineAdapter()
@@ -70,8 +77,10 @@ void
 WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 {
     LOGF << format("fxcdm::WidevineAdapter::Init aCallback=%1%\n") % aCallback;
-    priv->decryptor_cb_ = aCallback;
-    priv->decryptor_cb_->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
+    host_interface = aCallback;
+    fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
+
+    crcdm::Initialize();
 }
 
 void
@@ -85,18 +94,10 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
             aInitDataTypeSize % static_cast<const void *>(aInitData) % aInitDataSize % aSessionType;
 
-    if (!priv->decryptor_cb_) {
+    if (!fxcdm::host()) {
         LOGZ << "   no decryptor_cb_ yet\n";
         return;
     }
-
-    priv->crcdm_ = crcdm::CreateInstance(priv->decryptor_cb_, aCreateSessionToken);
-    if (!priv->crcdm_) {
-        LOGZ << "   failed to create cdm::ContentDecryptionModule instance\n";
-        return;
-    }
-
-    priv->crcdm_->Initialize(true, true); // TODO: allow_distinctive_identifier?
 
     string init_data_type_str {aInitDataType, aInitDataTypeSize};
     enum cdm::InitDataType init_data_type = cdm::kCenc;
@@ -111,7 +112,8 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
         LOGZ << "   unknown init data type '" << init_data_type_str << "'\n";
     }
 
-    priv->crcdm_->CreateSessionAndGenerateRequest(
+    crcdm::set_create_session_token(aCreateSessionToken);
+    crcdm::get()->CreateSessionAndGenerateRequest(
                         aPromiseId,
                         aSessionType == kGMPPersistentSession ? cdm::kPersistentLicense
                                                               : cdm::kTemporary,
@@ -134,7 +136,7 @@ WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
             string(aSessionId, aSessionIdLength) % aSessionIdLength %
             static_cast<const void *>(aResponse) % aResponseSize;
 
-    priv->crcdm_->UpdateSession(aPromiseId, aSessionId, aSessionIdLength, aResponse, aResponseSize);
+    crcdm::get()->UpdateSession(aPromiseId, aSessionId, aSessionIdLength, aResponse, aResponseSize);
 }
 
 void
@@ -189,7 +191,7 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
     encrypted_buffer.timestamp *= 1000;
 
     DecryptedBlockImpl decrypted_block;
-    priv->crcdm_->Decrypt(encrypted_buffer, &decrypted_block);
+    crcdm::get()->Decrypt(encrypted_buffer, &decrypted_block);
 
     auto decrypted_buffer = decrypted_block.DecryptedBuffer();
 
@@ -197,7 +199,7 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
     memcpy(aBuffer->Data(), decrypted_buffer->Data(), decrypted_buffer->Size());
 
     // TODO: error handling
-    priv->decryptor_cb_->Decrypted(aBuffer, GMPNoErr);
+    fxcdm::host()->Decrypted(aBuffer, GMPNoErr);
 }
 
 void

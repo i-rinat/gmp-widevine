@@ -20,8 +20,6 @@ GMPInit(const GMPPlatformAPI *aPlatformAPI)
     LOGF << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
     fxcdm::set_platform_api(aPlatformAPI);
 
-    crcdm::Initialize();
-
     return GMPNoErr;
 }
 

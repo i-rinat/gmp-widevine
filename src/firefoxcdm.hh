@@ -13,6 +13,9 @@ set_platform_api(const GMPPlatformAPI *api);
 const GMPPlatformAPI *
 get_platform_api();
 
+GMPDecryptorCallback *
+host();
+
 class WidevineAdapter final : public GMPDecryptor
 {
 public:

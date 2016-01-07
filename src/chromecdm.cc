@@ -12,6 +12,8 @@ using boost::format;
 
 namespace crcdm {
 
+cdm::ContentDecryptionModule *crcdm_instance = nullptr;
+
 class BufferImpl final : public cdm::Buffer {
 public:
     BufferImpl(uint32_t capacity) { SetSize(capacity); }
@@ -53,7 +55,25 @@ public:
     virtual void
     SetTimer(int64_t delay_ms, void *context) override
     {
-        LOGZ << format("crcdm::Host::SetTimer delay_ms=%1%, content=%2%\n") % delay_ms % context;
+        LOGF << format("crcdm::Host::SetTimer delay_ms=%1%, context=%2%\n") % delay_ms % context;
+
+        class Task final : public GMPTask {
+        public:
+            virtual void
+            Destroy() { delete this; }
+
+            virtual void
+            Run() { crcdm::get()->TimerExpired(context_); }
+
+            Task(void *context)
+                : context_(context)
+            {}
+        private:
+            void *context_;
+        };
+
+        // TODO: handle errors
+        fxcdm::get_platform_api()->settimer(new Task(context), delay_ms);
     }
 
     virtual cdm::Time
@@ -74,8 +94,8 @@ public:
         LOGF << format("crcdm::Host::OnResolveNewSessionPromise promise_id=%1%, session_id=%2%\n")
                 % promise_id % string(session_id, session_id_size);
 
-        decryptor_cb_->SetSessionId(create_session_token_, session_id, session_id_size);
-        decryptor_cb_->ResolveLoadSessionPromise(promise_id, true);
+        fxcdm::host()->SetSessionId(create_session_token_, session_id, session_id_size);
+        fxcdm::host()->ResolveLoadSessionPromise(promise_id, true);
     }
 
     virtual void
@@ -83,7 +103,7 @@ public:
     {
         LOGF << format("crcdm::Host::OnResolvePromise promise_id=%1%\n") % promise_id;
 
-        decryptor_cb_->ResolvePromise(promise_id);
+        fxcdm::host()->ResolvePromise(promise_id);
     }
 
     virtual void
@@ -114,7 +134,7 @@ public:
             };
         };
 
-        decryptor_cb_->SessionMessage(session_id, session_id_size,
+        fxcdm::host()->SessionMessage(session_id, session_id_size,
                                       convert_to_GMPSessionMessageType(message_type),
                                       reinterpret_cast<const uint8_t *>(message), message_size);
     }
@@ -143,7 +163,7 @@ public:
         };
 
         for (uint32_t k = 0; k < keys_info_count; k ++) {
-            decryptor_cb_->KeyStatusChanged(session_id, session_id_size, keys_info[k].key_id,
+            fxcdm::host()->KeyStatusChanged(session_id, session_id_size, keys_info[k].key_id,
                                             keys_info[k].key_id_size,
                                             to_GMPMediaKeyStatus(keys_info[k].status));
         }
@@ -157,7 +177,7 @@ public:
                 "new_expiry_time=%3%\n") % string(session_id, session_id_size) % session_id_size %
                 new_expiry_time;
 
-        decryptor_cb_->ExpirationChange(session_id, session_id_size,
+        fxcdm::host()->ExpirationChange(session_id, session_id_size,
                                         static_cast<int64_t>(new_expiry_time * 1e3));
     }
 
@@ -207,23 +227,17 @@ public:
         return nullptr;
     }
 
-    Host(GMPDecryptorCallback *decryptor_cb, uint32_t create_session_token)
-        : decryptor_cb_(decryptor_cb)
-        , create_session_token_(create_session_token)
+    void
+    set_create_session_token(uint32_t create_session_token)
     {
+        create_session_token_ = create_session_token;
     }
 
 private:
-    GMPDecryptorCallback *decryptor_cb_;
-    uint32_t              create_session_token_;
+    uint32_t create_session_token_ = 0;
 };
 
-
-struct HostFuncParamContainer {
-    GMPDecryptorCallback *decryptor_cb;
-    uint32_t              create_session_token;
-};
-
+Host *crcdm_host_instance = nullptr;
 
 void *
 get_cdm_host_func(int host_interface_version, void *user_data)
@@ -231,12 +245,10 @@ get_cdm_host_func(int host_interface_version, void *user_data)
     LOGF << format("crcdm::get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
             host_interface_version % user_data;
 
-    auto p = static_cast<HostFuncParamContainer *>(user_data);
-    auto decryptor_cb = p->decryptor_cb;
-    auto create_session_token = p->create_session_token;
-    delete p;
+    crcdm_host_instance = new crcdm::Host(); // XXX: relying on the fact the function is called
+                                             //      once, which could be wrong
 
-    return static_cast<void *>(new crcdm::Host(decryptor_cb, create_session_token));
+    return static_cast<void *>(crcdm_host_instance);
 }
 
 void
@@ -244,6 +256,16 @@ Initialize()
 {
     LOGF << "crcdm::Initialize\n";
     INITIALIZE_CDM_MODULE();
+
+    const string key_system {"com.widevine.alpha"};
+
+    void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
+                                  key_system.length(), get_cdm_host_func, nullptr);
+
+    LOGF << "  --> " << ptr << "\n";
+    crcdm_instance = static_cast<cdm::ContentDecryptionModule *>(ptr);
+    crcdm_instance->Initialize(false, false);   // TODO: allow_distinctive_identifier?
+                                                // TODO: enable FileIO
 }
 
 void
@@ -254,22 +276,15 @@ Deinitialize()
 }
 
 cdm::ContentDecryptionModule *
-CreateInstance(GMPDecryptorCallback *decryptor_cb, uint32_t create_session_token)
+get()
 {
-    LOGF << format("crcdm::CreateInstance decryptor_cb=%p\n") % decryptor_cb;
+    return crcdm_instance;
+}
 
-    const string key_system {"com.widevine.alpha"};
-
-    auto p = new HostFuncParamContainer();
-    p->decryptor_cb = decryptor_cb;
-    p->create_session_token = create_session_token;
-
-    void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
-                                  key_system.length(), get_cdm_host_func,
-                                  static_cast<void *>(p));
-    LOGF << "  --> " << ptr << "\n";
-
-    return static_cast<cdm::ContentDecryptionModule *>(ptr);
+void
+set_create_session_token(uint32_t create_session_token)
+{
+    crcdm_host_instance->set_create_session_token(create_session_token);
 }
 
 } // namespace crcdm
