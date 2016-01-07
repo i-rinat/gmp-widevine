@@ -74,6 +74,7 @@ public:
         LOGF << format("crcdm::Host::OnResolveNewSessionPromise promise_id=%1%, session_id=%2%\n")
                 % promise_id % string(session_id, session_id_size);
 
+        decryptor_cb_->SetSessionId(create_session_token_, session_id, session_id_size);
         decryptor_cb_->ResolveLoadSessionPromise(promise_id, true);
     }
 
@@ -177,13 +178,21 @@ public:
         return nullptr;
     }
 
-    Host(GMPDecryptorCallback *decryptor_cb)
+    Host(GMPDecryptorCallback *decryptor_cb, uint32_t create_session_token)
         : decryptor_cb_(decryptor_cb)
+        , create_session_token_(create_session_token)
     {
     }
 
 private:
     GMPDecryptorCallback *decryptor_cb_;
+    uint32_t              create_session_token_;
+};
+
+
+struct HostFuncParamContainer {
+    GMPDecryptorCallback *decryptor_cb;
+    uint32_t              create_session_token;
 };
 
 
@@ -193,9 +202,12 @@ get_cdm_host_func(int host_interface_version, void *user_data)
     LOGZ << format("crcdm::get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
             host_interface_version % user_data;
 
-    auto decryptor_cb = static_cast<GMPDecryptorCallback *>(user_data);
+    auto p = static_cast<HostFuncParamContainer *>(user_data);
+    auto decryptor_cb = p->decryptor_cb;
+    auto create_session_token = p->create_session_token;
+    delete p;
 
-    return static_cast<void *>(new crcdm::Host(decryptor_cb));
+    return static_cast<void *>(new crcdm::Host(decryptor_cb, create_session_token));
 }
 
 void
@@ -213,15 +225,19 @@ Deinitialize()
 }
 
 cdm::ContentDecryptionModule *
-CreateInstance(GMPDecryptorCallback *decryptor_cb)
+CreateInstance(GMPDecryptorCallback *decryptor_cb, uint32_t create_session_token)
 {
     LOGF << format("crcdm::CreateInstance decryptor_cb=%p\n") % decryptor_cb;
 
     const string key_system {"com.widevine.alpha"};
 
+    auto p = new HostFuncParamContainer();
+    p->decryptor_cb = decryptor_cb;
+    p->create_session_token = create_session_token;
+
     void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
                                   key_system.length(), get_cdm_host_func,
-                                  static_cast<void *>(decryptor_cb));
+                                  static_cast<void *>(p));
     LOGF << "  --> " << ptr << "\n";
 
     return static_cast<cdm::ContentDecryptionModule *>(ptr);
