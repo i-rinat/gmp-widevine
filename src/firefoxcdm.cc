@@ -14,10 +14,35 @@ using boost::format;
 
 const GMPPlatformAPI *platform_api = nullptr;
 
-class DecryptedBlockImpl: public cdm::DecryptedBlock
+class DecryptedBlockImpl final : public cdm::DecryptedBlock
 {
+   virtual void
+   SetDecryptedBuffer(cdm::Buffer *buffer) override
+   {
+       LOGD << "fxcdm::DecryptedBlockImpl::SetDecryptedBuffer\n";
+   }
 
+   virtual cdm::Buffer *
+   DecryptedBuffer() override
+   {
+       LOGD << "fxcdm::DecryptedBlockImpl::DecryptedBuffer\n";
+       return nullptr;
+   }
+
+   virtual void
+   SetTimestamp(int64_t timestamp) override
+   {
+       LOGD << "fxcdm::DecryptedBlockImpl::SetTimestamp\n";
+   }
+
+   virtual int64_t
+   Timestamp() const override
+   {
+       LOGD << "fxcdm::DecryptedBlockImpl::Timestamp\n";
+       return 0;
+   }
 };
+
 
 struct WidevineAdapter::Impl {
     GMPDecryptorCallback           *decryptor_cb_ = nullptr;
