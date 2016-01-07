@@ -132,9 +132,12 @@ public:
     OnExpirationChange(const char *session_id, uint32_t session_id_size,
                        cdm::Time new_expiry_time) override
     {
-        LOGZ << format("crcdm::Host::OnExpirationChange session_id=%1%, session_id_size=%2%, "
+        LOGF << format("crcdm::Host::OnExpirationChange session_id=%1%, session_id_size=%2%, "
                 "new_expiry_time=%3%\n") % string(session_id, session_id_size) % session_id_size %
                 new_expiry_time;
+
+        decryptor_cb_->ExpirationChange(session_id, session_id_size,
+                                        static_cast<int64_t>(new_expiry_time * 1e3));
     }
 
     virtual void
