@@ -53,7 +53,7 @@ public:
     virtual void
     SetTimer(int64_t delay_ms, void *context) override
     {
-        LOGZ << "crcdm::Host::SetTimer\n";
+        LOGZ << format("crcdm::Host::SetTimer delay_ms=%1%, content=%2%\n") % delay_ms % context;
     }
 
     virtual cdm::Time
@@ -81,7 +81,7 @@ public:
     virtual void
     OnResolvePromise(uint32_t promise_id) override
     {
-        LOGZ << "crcdm::Host::OnResolvePromise\n";
+        LOGZ << format("crcdm::Host::OnResolvePromise promise_id=%1%\n") % promise_id;
     }
 
     virtual void
@@ -122,14 +122,19 @@ public:
                         bool has_additional_usable_key, const cdm::KeyInformation *keys_info,
                         uint32_t keys_info_count) override
     {
-        LOGZ << "crcdm::Host::OnSessionKeysChange\n";
+        LOGZ << format("crcdm::Host::OnSessionKeysChange session_id=%1%, session_id_size=%2%, "
+                "has_additional_usable_key=%3%, keys_info=%4%, keys_info_count=%5%\n") %
+                string(session_id, session_id_size) % session_id_size % has_additional_usable_key %
+                static_cast<const void *>(keys_info) % keys_info_count;
     }
 
     virtual void
     OnExpirationChange(const char *session_id, uint32_t session_id_size,
                        cdm::Time new_expiry_time) override
     {
-        LOGZ << "crcdm::Host::OnExpirationChange\n";
+        LOGZ << format("crcdm::Host::OnExpirationChange session_id=%1%, session_id_size=%2%, "
+                "new_expiry_time=%3%\n") % string(session_id, session_id_size) % session_id_size %
+                new_expiry_time;
     }
 
     virtual void

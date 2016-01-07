@@ -203,7 +203,7 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
 void
 WidevineAdapter::DecryptingComplete()
 {
-    LOGZ << "fxcdm::WidevineAdapter::DecryptingComplete\n";
+    LOGZ << "fxcdm::WidevineAdapter::DecryptingComplete (void)\n";
 }
 
 
@@ -215,12 +215,12 @@ WidevineAdapterAsyncShutdown::WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost 
 void
 WidevineAdapterAsyncShutdown::BeginShutdown()
 {
-    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown\n";
+    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown (void)\n";
 }
 
 WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
 {
-    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown\n";
+    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown (void)\n";
 }
 
 void
