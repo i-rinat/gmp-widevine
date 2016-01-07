@@ -199,7 +199,7 @@ struct HostFuncParamContainer {
 void *
 get_cdm_host_func(int host_interface_version, void *user_data)
 {
-    LOGZ << format("crcdm::get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
+    LOGF << format("crcdm::get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
             host_interface_version % user_data;
 
     auto p = static_cast<HostFuncParamContainer *>(user_data);
