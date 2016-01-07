@@ -41,6 +41,42 @@ private:
     uint32_t sz = 0;
 };
 
+class FileIO final : public cdm::FileIO {
+public:
+    virtual void
+    Open(const char *file_name, uint32_t file_name_size) override
+    {
+        LOGZ << format("crcdm::FileIO::Open file_name=%1%, file_name_size=%2%\n") %
+                string(file_name, file_name_size) % file_name_size;
+    }
+
+    virtual void
+    Read() override
+    {
+        LOGZ << "crcdm::FileIO::Read (void)\n";
+    }
+
+    virtual void
+    Write(const uint8_t *data, uint32_t data_size) override
+    {
+        LOGZ << format("crcdm::FileIO::Write data=%1%, data_size=%2%\n") %
+                static_cast<const void *>(data) % data_size;
+    }
+
+    virtual void
+    Close() override
+    {
+        LOGZ << "crcdm::FileIO::Close (void)\n";
+    }
+
+    FileIO(cdm::FileIOClient *file_io_client)
+        : file_io_client_(file_io_client)
+    {}
+
+private:
+    cdm::FileIOClient *file_io_client_;
+};
+
 
 class Host final: public cdm::ContentDecryptionModule::Host {
 public:
@@ -241,8 +277,8 @@ public:
     virtual cdm::FileIO *
     CreateFileIO(cdm::FileIOClient *client) override
     {
-        LOGZ << "crcdm::Host::CreateFileIO\n";
-        return nullptr;
+        LOGF << format("crcdm::Host::CreateFileIO client=%1%\n") % client;
+        return new FileIO(client);
     }
 
     void
