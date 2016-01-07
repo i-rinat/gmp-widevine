@@ -129,7 +129,12 @@ WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
                                uint32_t aSessionIdLength, const uint8_t *aResponse,
                                uint32_t aResponseSize)
 {
-    LOGZ << "fxcdm::WidevineAdapter::UpdateSession\n";
+    LOGF << format("fxcdm::WidevineAdapter::UpdateSession aPromiseId=%1%, aSessionId=%2%, "
+            "aSessionIdLength=%3%, aResponse=%4%, aResponseSize=%5%\n") % aPromiseId %
+            string(aSessionId, aSessionIdLength) % aSessionIdLength %
+            static_cast<const void *>(aResponse) % aResponseSize;
+
+    priv->crcdm_->UpdateSession(aPromiseId, aSessionId, aSessionIdLength, aResponse, aResponseSize);
 }
 
 void
