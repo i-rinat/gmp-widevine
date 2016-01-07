@@ -86,7 +86,7 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
     priv->decryptor_cb_->SetSessionId(aCreateSessionToken, session_id.c_str(), session_id.size());
     priv->decryptor_cb_->ResolvePromise(aPromiseId);
 
-    priv->crcdm_ = crcdm::CreateInstance();
+    priv->crcdm_ = crcdm::CreateInstance(priv->decryptor_cb_);
     if (!priv->crcdm_) {
         LOGZ << "   failed to create cdm::ContentDecryptionModule instance\n";
         return;

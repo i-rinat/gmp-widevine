@@ -157,17 +157,13 @@ public:
         return nullptr;
     }
 
-    static Host *
-    get_another_instance()
+    Host(GMPDecryptorCallback *decryptor_cb)
+        : decryptor_cb_(decryptor_cb)
     {
-        return new Host();
     }
 
-protected:
-    Host() {}
-
-    virtual
-    ~Host() {}
+private:
+    GMPDecryptorCallback *decryptor_cb_;
 };
 
 
@@ -177,7 +173,9 @@ get_cdm_host_func(int host_interface_version, void *user_data)
     LOGZ << format("crcdm::get_cdm_host_func host_interface_version=%d, user_data=%p\n") %
             host_interface_version % user_data;
 
-    return static_cast<void *>(crcdm::Host::get_another_instance());
+    auto decryptor_cb = static_cast<GMPDecryptorCallback *>(user_data);
+
+    return static_cast<void *>(new crcdm::Host(decryptor_cb));
 }
 
 void
@@ -195,13 +193,16 @@ Deinitialize()
 }
 
 cdm::ContentDecryptionModule *
-CreateInstance()
+CreateInstance(GMPDecryptorCallback *decryptor_cb)
 {
+    LOGF << "crcdm::CreateInstance\n";
+
     const string key_system {"com.widevine.alpha"};
 
     void *ptr = CreateCdmInstance(cdm::ContentDecryptionModule::kVersion, key_system.c_str(),
-                                  key_system.length(), get_cdm_host_func, (void *)0x12345);
-    LOGF << "calling crcdm::CreateInstance gives " << ptr << "\n";
+                                  key_system.length(), get_cdm_host_func,
+                                  static_cast<void *>(decryptor_cb));
+    LOGF << "  --> " << ptr << "\n";
 
     return static_cast<cdm::ContentDecryptionModule *>(ptr);
 }
