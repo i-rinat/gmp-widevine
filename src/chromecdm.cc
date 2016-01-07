@@ -71,8 +71,10 @@ public:
     OnResolveNewSessionPromise(uint32_t promise_id, const char *session_id,
                                uint32_t session_id_size) override
     {
-        LOGZ << format("crcdm::Host::OnResolveNewSessionPromise promise_id=%1%, session_id=%2%\n")
+        LOGF << format("crcdm::Host::OnResolveNewSessionPromise promise_id=%1%, session_id=%2%\n")
                 % promise_id % string(session_id, session_id_size);
+
+        decryptor_cb_->ResolveLoadSessionPromise(promise_id, true);
     }
 
     virtual void
@@ -94,11 +96,24 @@ public:
                      const char *legacy_destination_url,
                      uint32_t legacy_destination_url_length) override
     {
-        LOGZ << format("crcdm::Host::OnSessionMessage session_id=%1%, message_type=%2%, "
+        LOGF << format("crcdm::Host::OnSessionMessage session_id=%1%, message_type=%2%, "
                 "message=%3%, message_size=%4%, legacy_destination_url=%5%\n") %
                 string(session_id, session_id_size) % message_type %
                 static_cast<const void *>(message) % message_size %
                 string(legacy_destination_url, legacy_destination_url_length);
+
+        auto convert_to_GMPSessionMessageType = [](cdm::MessageType message_type) {
+            switch (message_type) {
+            case cdm::kLicenseRequest: return kGMPLicenseRequest;
+            case cdm::kLicenseRenewal: return kGMPLicenseRenewal;
+            case cdm::kLicenseRelease: return kGMPLicenseRelease;
+            default:                   return kGMPMessageInvalid;
+            };
+        };
+
+        decryptor_cb_->SessionMessage(session_id, session_id_size,
+                                      convert_to_GMPSessionMessageType(message_type),
+                                      reinterpret_cast<const uint8_t *>(message), message_size);
     }
 
     virtual void
