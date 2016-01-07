@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define DEBUG_TRACE
+//#define DEBUG_TRACE
 
 #ifdef DEBUG_TRACE
 #define LOGF    std::cout << "gmp-widevine/F: "
