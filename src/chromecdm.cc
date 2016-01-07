@@ -19,10 +19,10 @@ public:
     BufferImpl(uint32_t capacity) { SetSize(capacity); }
 
     virtual void
-    Destroy() override { free(data_); data_ = nullptr; sz = 0; }
+    Destroy() override { free(data_); data_ = nullptr; sz_ = 0; }
 
     virtual uint32_t
-    Capacity() const override { return sz;}
+    Capacity() const override { return sz_;}
 
     virtual uint8_t *
     Data() override { return data_; }
@@ -31,14 +31,15 @@ public:
     SetSize(uint32_t size) override
     {
         data_ = static_cast<uint8_t *>(realloc(static_cast<void *>(data_), size));
+        sz_ = size;
     }
 
     virtual uint32_t
-    Size() const { return sz; }
+    Size() const { return sz_; }
 
 private:
     uint8_t *data_ = nullptr;
-    uint32_t sz = 0;
+    uint32_t sz_ = 0;
 };
 
 class GMPRecordClientImpl final : public GMPRecordClient {
