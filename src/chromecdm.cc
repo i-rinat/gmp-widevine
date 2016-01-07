@@ -12,6 +12,34 @@ using boost::format;
 
 namespace crcdm {
 
+class BufferImpl final : public cdm::Buffer {
+public:
+    BufferImpl(uint32_t capacity) { SetSize(capacity); }
+
+    virtual void
+    Destroy() override { free(data_); data_ = nullptr; sz = 0; }
+
+    virtual uint32_t
+    Capacity() const override { return sz;}
+
+    virtual uint8_t *
+    Data() override { return data_; }
+
+    virtual void
+    SetSize(uint32_t size) override
+    {
+        data_ = static_cast<uint8_t *>(realloc(static_cast<void *>(data_), size));
+    }
+
+    virtual uint32_t
+    Size() const { return sz; }
+
+private:
+    uint8_t *data_ = nullptr;
+    uint32_t sz = 0;
+};
+
+
 class Host final: public cdm::ContentDecryptionModule::Host {
 public:
 
@@ -19,7 +47,7 @@ public:
     Allocate(uint32_t capacity) override
     {
         LOGD << "crcdm::Host::Allocate\n";
-        return nullptr;
+        return new BufferImpl(capacity);
     }
 
     virtual void
