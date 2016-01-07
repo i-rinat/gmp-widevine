@@ -19,28 +19,34 @@ class DecryptedBlockImpl final : public cdm::DecryptedBlock
    virtual void
    SetDecryptedBuffer(cdm::Buffer *buffer) override
    {
-       LOGZ << "fxcdm::DecryptedBlockImpl::SetDecryptedBuffer\n";
+       LOGF << format("fxcdm::DecryptedBlockImpl::SetDecryptedBuffer buffer=%p\n") % buffer;
+       buffer_ = buffer;
    }
 
    virtual cdm::Buffer *
    DecryptedBuffer() override
    {
-       LOGZ << "fxcdm::DecryptedBlockImpl::DecryptedBuffer\n";
-       return nullptr;
+       LOGF << "fxcdm::DecryptedBlockImpl::DecryptedBuffer (void)\n";
+       return buffer_;
    }
 
    virtual void
    SetTimestamp(int64_t timestamp) override
    {
-       LOGZ << "fxcdm::DecryptedBlockImpl::SetTimestamp\n";
+       LOGF << format("fxcdm::DecryptedBlockImpl::SetTimestamp timestamp=%1%\n") % timestamp;
+       timestamp_ = timestamp;
    }
 
    virtual int64_t
    Timestamp() const override
    {
-       LOGZ << "fxcdm::DecryptedBlockImpl::Timestamp\n";
-       return 0;
+       LOGF << "fxcdm::DecryptedBlockImpl::Timestamp (void)\n";
+       return timestamp_;
    }
+
+private:
+    int64_t      timestamp_ = 0;
+    cdm::Buffer *buffer_    = nullptr;
 };
 
 
