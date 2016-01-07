@@ -110,7 +110,22 @@ public:
     OnRejectPromise(uint32_t promise_id, cdm::Error error, uint32_t system_code,
                     const char *error_message, uint32_t error_message_size) override
     {
-        LOGZ << "crcdm::Host::OnRejectPromise\n";
+        LOGF << format("crcdm::Host::OnRejectPromise promise_id=%1%, error=%2%, system_code=%3%, "
+                "error_message=%4%, error_message_size=%5%\n") % promise_id % error % system_code %
+                string(error_message, error_message_size) % error_message_size;
+
+        auto to_GMPDOMException = [](cdm::Error error) {
+            switch (error) {
+            case cdm::kNotSupportedError:  return kGMPNotSupportedError;
+            case cdm::kInvalidStateError:  return kGMPInvalidStateError;
+            case cdm::kInvalidAccessError: return kGMPInvalidAccessError;
+            case cdm::kQuotaExceededError: return kGMPQuotaExceededError;
+            default:                       return kGMPInvalidStateError;
+            }
+        };
+
+        fxcdm::host()->RejectPromise(promise_id, to_GMPDOMException(error), error_message,
+                                     error_message_size);
     }
 
     virtual void
