@@ -195,15 +195,36 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
     encrypted_buffer.timestamp *= 1000;
 
     DecryptedBlockImpl decrypted_block;
-    crcdm::get()->Decrypt(encrypted_buffer, &decrypted_block);
+    cdm::Status decode_status = crcdm::get()->Decrypt(encrypted_buffer, &decrypted_block);
 
-    auto decrypted_buffer = decrypted_block.DecryptedBuffer();
+    LOGF << "    decode_status = " << decode_status << "\n";
 
-    aBuffer->Resize(decrypted_buffer->Size());
-    memcpy(aBuffer->Data(), decrypted_buffer->Data(), decrypted_buffer->Size());
+    if (decode_status == cdm::kSuccess) {
+        auto decrypted_buffer = decrypted_block.DecryptedBuffer();
+
+        aBuffer->Resize(decrypted_buffer->Size());
+        memcpy(aBuffer->Data(), decrypted_buffer->Data(), decrypted_buffer->Size());
+
+        // TODO: error handling
+        fxcdm::host()->Decrypted(aBuffer, GMPNoErr);
+        return;
+    }
+
+    auto to_GMPErr = [](cdm::Status status) {
+        switch (status) {
+        case cdm::kSuccess:         return GMPNoErr;
+        case cdm::kNeedMoreData:    return GMPGenericErr;
+        case cdm::kNoKey:           return GMPNoKeyErr;
+        case cdm::kSessionError:    return GMPGenericErr;
+        case cdm::kDecryptError:    return GMPCryptoErr;
+        case cdm::kDecodeError:     return GMPDecodeErr;
+        case cdm::kDeferredInitialization: return GMPGenericErr;
+        default:                    return GMPGenericErr;
+        }
+    };
 
     // TODO: error handling
-    fxcdm::host()->Decrypted(aBuffer, GMPNoErr);
+    fxcdm::host()->Decrypted(aBuffer, to_GMPErr(decode_status));
 }
 
 void
