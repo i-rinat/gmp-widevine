@@ -122,10 +122,29 @@ public:
                         bool has_additional_usable_key, const cdm::KeyInformation *keys_info,
                         uint32_t keys_info_count) override
     {
-        LOGZ << format("crcdm::Host::OnSessionKeysChange session_id=%1%, session_id_size=%2%, "
+        LOGF << format("crcdm::Host::OnSessionKeysChange session_id=%1%, session_id_size=%2%, "
                 "has_additional_usable_key=%3%, keys_info=%4%, keys_info_count=%5%\n") %
                 string(session_id, session_id_size) % session_id_size % has_additional_usable_key %
                 static_cast<const void *>(keys_info) % keys_info_count;
+
+        auto to_GMPMediaKeyStatus = [](cdm::KeyStatus status) {
+            switch (status) {
+            case cdm::kUsable:           return kGMPUsable;
+            case cdm::kInternalError:    return kGMPInternalError;
+            case cdm::kExpired:          return kGMPExpired;
+            case cdm::kOutputRestricted: return kGMPOutputRestricted;
+            case cdm::kOutputDownscaled: return kGMPOutputDownscaled;
+            case cdm::kStatusPending:    return kGMPStatusPending;
+            case cdm::kReleased:         return kGMPReleased;
+            default:                     return kGMPMediaKeyStatusInvalid;
+            }
+        };
+
+        for (uint32_t k = 0; k < keys_info_count; k ++) {
+            decryptor_cb_->KeyStatusChanged(session_id, session_id_size, keys_info[k].key_id,
+                                            keys_info[k].key_id_size,
+                                            to_GMPMediaKeyStatus(keys_info[k].status));
+        }
     }
 
     virtual void
