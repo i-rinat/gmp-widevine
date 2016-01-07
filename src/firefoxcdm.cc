@@ -143,7 +143,11 @@ void
 WidevineAdapter::CloseSession(uint32_t aPromiseId, const char *aSessionId,
                               uint32_t aSessionIdLength)
 {
-    LOGZ << "fxcdm::WidevineAdapter::CloseSession\n";
+    LOGF << format("fxcdm::WidevineAdapter::CloseSession aPromiseId=%1%, aSessionId=%2%, "
+            "aSessionIdLength=%3%\n") % aPromiseId % string(aSessionId, aSessionIdLength) %
+            aSessionIdLength;
+
+    crcdm::get()->CloseSession(aPromiseId, aSessionId, aSessionIdLength);
 }
 
 void

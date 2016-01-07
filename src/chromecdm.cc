@@ -184,7 +184,10 @@ public:
     virtual void
     OnSessionClosed(const char *session_id, uint32_t session_id_size) override
     {
-        LOGZ << "crcdm::Host::OnSessionClosed\n";
+        LOGF << format("crcdm::Host::OnSessionClosed session_id=%1%, session_id_size=%2%\n") %
+                string(session_id, session_id_size) % session_id_size;
+
+        fxcdm::host()->SessionClosed(session_id, session_id_size);
     }
 
     virtual void
