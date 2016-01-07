@@ -284,8 +284,10 @@ public:
                 "new_expiry_time=%3%\n") % string(session_id, session_id_size) % session_id_size %
                 new_expiry_time;
 
-        fxcdm::host()->ExpirationChange(session_id, session_id_size,
-                                        static_cast<int64_t>(new_expiry_time * 1e3));
+        if (new_expiry_time != 0) {
+            fxcdm::host()->ExpirationChange(session_id, session_id_size,
+                                            static_cast<int64_t>(new_expiry_time * 1e3));
+        }
     }
 
     virtual void
@@ -374,8 +376,7 @@ Initialize()
 
     LOGF << "  --> " << ptr << "\n";
     crcdm_instance = static_cast<cdm::ContentDecryptionModule *>(ptr);
-    crcdm_instance->Initialize(false, false);   // TODO: allow_distinctive_identifier?
-                                                // TODO: enable FileIO
+    crcdm_instance->Initialize(true, true);     // TODO: allow_distinctive_identifier?
 }
 
 void
