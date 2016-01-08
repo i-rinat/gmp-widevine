@@ -23,6 +23,7 @@
  */
 
 #include <string>
+#include <sstream>
 #include <vector>
 #include <boost/format.hpp>
 #include <string.h>
@@ -33,9 +34,10 @@
 
 namespace fxcdm {
 
-using std::string;
-using std::vector;
 using boost::format;
+using std::string;
+using std::stringstream;
+using std::vector;
 
 
 const GMPPlatformAPI *platform_api = nullptr;
@@ -188,12 +190,41 @@ WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServe
     LOGZ << "fxcdm::WidevineAdapter::SetServerCertificate\n";
 }
 
+string
+to_hex_string(const uint8_t *data, uint32_t len)
+{
+    stringstream s;
+
+    for (uint32_t k = 0; k < len; k ++) {
+        if (k > 0)
+            s << " ";
+        s << format("%02x") % static_cast<unsigned>(data[k]);
+    }
+
+    return s.str();
+}
+
+string
+subsamples_to_string(uint32_t num, const uint16_t *clear, const uint32_t *cipher)
+{
+    stringstream s;
+
+    for (uint32_t k = 0; k < num; k ++) {
+        if (k > 0)
+            s << " ";
+
+        s << format("(%1%, %2%)") % clear[k] % cipher[k];
+    }
+
+    return s.str();
+}
+
 void
 WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
 {
     LOGF << format("fxcdm::WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
             aMetadata;
-    LOGF << format("    aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
+    LOGF << format("   aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
 
     cdm::InputBuffer    encrypted_buffer;
@@ -209,6 +240,12 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
 
     encrypted_buffer.num_subsamples = aMetadata->NumSubsamples();
     vector<cdm::SubsampleEntry> subsamples;
+
+    LOGF << format("   key = %1%\n") % to_hex_string(aMetadata->KeyId(), aMetadata->KeyIdSize());
+    LOGF << format("   IV = %1%\n") % to_hex_string(aMetadata->IV(), aMetadata->IVSize());
+    LOGF << format("   subsamples (clear, cipher) = %1%\n") %
+            subsamples_to_string(aMetadata->NumSubsamples(), aMetadata->ClearBytes(),
+                                 aMetadata->CipherBytes());
 
     for (uint32_t k = 0; k < encrypted_buffer.num_subsamples; k ++)
         subsamples.emplace_back(aMetadata->ClearBytes()[k], aMetadata->CipherBytes()[k]);
