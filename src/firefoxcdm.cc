@@ -266,12 +266,16 @@ WidevineAdapterAsyncShutdown::WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost 
 void
 WidevineAdapterAsyncShutdown::BeginShutdown()
 {
-    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown (void)\n";
+    LOGF << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown (void)\n";
+
+    // there is nothing to close asynchronously
+    host_api_->ShutdownComplete();
 }
 
 WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
 {
-    LOGZ << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown (void)\n";
+    LOGF << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown (void)\n";
+    // TODO: delete self?
 }
 
 void
