@@ -27,6 +27,8 @@
 #include <gmp/gmp-decryption.h>
 #include <gmp/gmp-async-shutdown.h>
 #include <memory>
+#include <sstream>
+#include <boost/format.hpp>
 
 
 namespace fxcdm {
@@ -97,5 +99,34 @@ public:
 private:
     GMPAsyncShutdownHost *host_api_;
 };
+
+inline std::string
+to_hex_string(const uint8_t *data, uint32_t len)
+{
+    std::stringstream s;
+
+    for (uint32_t k = 0; k < len; k ++) {
+        if (k > 0)
+            s << " ";
+        s << boost::format("%02x") % static_cast<unsigned>(data[k]);
+    }
+
+    return s.str();
+}
+
+inline std::string
+subsamples_to_string(uint32_t num, const uint16_t *clear, const uint32_t *cipher)
+{
+    std::stringstream s;
+
+    for (uint32_t k = 0; k < num; k ++) {
+        if (k > 0)
+            s << " ";
+
+        s << boost::format("(%1%, %2%)") % clear[k] % cipher[k];
+    }
+
+    return s.str();
+}
 
 } // namespace fxcdm

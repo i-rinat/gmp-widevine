@@ -296,6 +296,9 @@ public:
         };
 
         for (uint32_t k = 0; k < keys_info_count; k ++) {
+            LOGF << format("   key = (%1%) %2%\n") % keys_info[k].status %
+                    fxcdm::to_hex_string(keys_info[k].key_id, keys_info[k].key_id_size);
+
             fxcdm::host()->KeyStatusChanged(session_id, session_id_size, keys_info[k].key_id,
                                             keys_info[k].key_id_size,
                                             to_GMPMediaKeyStatus(keys_info[k].status));

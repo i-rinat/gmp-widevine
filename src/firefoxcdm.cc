@@ -23,9 +23,7 @@
  */
 
 #include <string>
-#include <sstream>
 #include <vector>
-#include <boost/format.hpp>
 #include <string.h>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
@@ -188,35 +186,6 @@ WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServe
                                       uint32_t aServerCertSize)
 {
     LOGZ << "fxcdm::WidevineAdapter::SetServerCertificate\n";
-}
-
-string
-to_hex_string(const uint8_t *data, uint32_t len)
-{
-    stringstream s;
-
-    for (uint32_t k = 0; k < len; k ++) {
-        if (k > 0)
-            s << " ";
-        s << format("%02x") % static_cast<unsigned>(data[k]);
-    }
-
-    return s.str();
-}
-
-string
-subsamples_to_string(uint32_t num, const uint16_t *clear, const uint32_t *cipher)
-{
-    stringstream s;
-
-    for (uint32_t k = 0; k < num; k ++) {
-        if (k > 0)
-            s << " ";
-
-        s << format("(%1%, %2%)") % clear[k] % cipher[k];
-    }
-
-    return s.str();
 }
 
 void
