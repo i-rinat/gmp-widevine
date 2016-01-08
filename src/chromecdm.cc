@@ -305,8 +305,8 @@ public:
                        cdm::Time new_expiry_time) override
     {
         LOGF << format("crcdm::Host::OnExpirationChange session_id=%1%, session_id_size=%2%, "
-                "new_expiry_time=%3%\n") % string(session_id, session_id_size) % session_id_size %
-                new_expiry_time;
+                "new_expiry_time=%3$.3f\n") % string(session_id, session_id_size) %
+                session_id_size % new_expiry_time;
 
         if (new_expiry_time != 0) {
             fxcdm::host()->ExpirationChange(session_id, session_id_size,

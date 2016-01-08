@@ -256,6 +256,8 @@ WidevineAdapter::DecryptingComplete()
 {
     LOGF << "fxcdm::WidevineAdapter::DecryptingComplete (void)\n";
 
+    crcdm::Deinitialize();
+
     delete this;
 }
 

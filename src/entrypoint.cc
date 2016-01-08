@@ -41,7 +41,7 @@ extern "C" {
 GMPErr
 GMPInit(const GMPPlatformAPI *aPlatformAPI)
 {
-    LOGF << format("%1% aPlatformAPI=%2%\n") % __func__ % aPlatformAPI;
+    LOGF << format("GMPInit aPlatformAPI=%1%\n") % aPlatformAPI;
     fxcdm::set_platform_api(aPlatformAPI);
 
     return GMPNoErr;
@@ -50,7 +50,7 @@ GMPInit(const GMPPlatformAPI *aPlatformAPI)
 GMPErr
 GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 {
-    LOGF << format("%1% apiName=%2%, aHostAPI=%3%\n") % __func__ % apiName % aHostAPI;
+    LOGF << format("GMPGetAPI apiName=%1%, aHostAPI=%2%\n") % apiName % aHostAPI;
 
     string api_name(apiName);
 
@@ -68,7 +68,7 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
             return GMPNotImplementedErr;
         }
     } catch (std::exception &e) {
-        LOGZ << format("%1% something bad happened: %2%\n") % __func__ % e.what();
+        LOGZ << format("GMPGetAPI: something bad happened: %2%\n") % e.what();
         return GMPNotImplementedErr;
     }
 }
@@ -76,7 +76,7 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 void
 GMPShutdown()
 {
-    LOGZ << format("%1%\n") % __func__;
+    LOGF << "GMPShutdown\n";
 }
 
 } // extern "C"
