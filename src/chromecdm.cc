@@ -160,11 +160,10 @@ private:
 
 class Host final: public cdm::ContentDecryptionModule::Host {
 public:
-
     virtual cdm::Buffer *
     Allocate(uint32_t capacity) override
     {
-        LOGF << "crcdm::Host::Allocate\n";
+        LOGF << format("crcdm::Host::Allocate capacity=%1%\n") % capacity;
         return new BufferImpl(capacity);
     }
 
