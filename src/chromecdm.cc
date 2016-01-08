@@ -200,7 +200,10 @@ public:
         int64_t milliseconds = 0;
         fxcdm::get_platform_api()->getcurrenttime(&milliseconds);
 
-        return milliseconds / 1e3;
+        double t = milliseconds / 1e3;
+        LOGF << format("   --> %1$.3f\n") % t;
+
+        return t;
     }
 
     virtual void
