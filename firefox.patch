@@ -1,0 +1,137 @@
+diff --git a/dom/media/eme/EMEUtils.cpp b/dom/media/eme/EMEUtils.cpp
+index 68e6df1..8232816 100644
+--- a/dom/media/eme/EMEUtils.cpp
++++ b/dom/media/eme/EMEUtils.cpp
+@@ -83,6 +83,7 @@ ParseKeySystem(const nsAString& aExpectedKeySystem,
+ static const char16_t* sKeySystems[] = {
+   MOZ_UTF16("org.w3.clearkey"),
+   MOZ_UTF16("com.adobe.primetime"),
++  MOZ_UTF16("com.widevine.alpha"),
+ };
+ 
+ bool
+@@ -140,6 +141,9 @@ KeySystemToGMPName(const nsAString& aKeySystem)
+   if (aKeySystem.EqualsLiteral("org.w3.clearkey")) {
+     return NS_LITERAL_STRING("gmp-clearkey");
+   }
++  if (aKeySystem.EqualsLiteral("com.widevine.alpha")) {
++    return NS_LITERAL_STRING("gmp-widevine");
++  }
+   MOZ_ASSERT(false, "We should only call this for known GMPs");
+   return EmptyString();
+ }
+diff --git a/dom/media/eme/MediaKeySystemAccess.cpp b/dom/media/eme/MediaKeySystemAccess.cpp
+index e665df3..9592955 100644
+--- a/dom/media/eme/MediaKeySystemAccess.cpp
++++ b/dom/media/eme/MediaKeySystemAccess.cpp
+@@ -283,6 +283,10 @@ MediaKeySystemAccess::GetKeySystemStatus(const nsAString& aKeySystem,
+     return EnsureMinCDMVersion(mps, aKeySystem, aMinCdmVersion, aOutMessage, aOutCdmVersion);
+   }
+ 
++  if (aKeySystem.EqualsLiteral("com.widevine.alpha")) {
++    return EnsureMinCDMVersion(mps, aKeySystem, aMinCdmVersion, aOutMessage, aOutCdmVersion);
++  }
++
+ #ifdef PRIMETIME_EME_SUPPORTED
+   if (aKeySystem.EqualsLiteral("com.adobe.primetime")) {
+     if (!Preferences::GetBool("media.gmp-eme-adobe.enabled", false)) {
+diff --git a/dom/media/gmp/GMPChild.cpp b/dom/media/gmp/GMPChild.cpp
+index 95ee0eb..3be4f92 100644
+--- a/dom/media/gmp/GMPChild.cpp
++++ b/dom/media/gmp/GMPChild.cpp
+@@ -32,6 +32,10 @@ static const int MAX_VOUCHER_LENGTH = 500000;
+ #include <unistd.h> // for _exit()
+ #endif
+ 
++#ifdef XP_LINUX
++#include <dlfcn.h>
++#endif
++
+ #if defined(MOZ_GMP_SANDBOX)
+ #if defined(XP_MACOSX)
+ #include "mozilla/Sandbox.h"
+@@ -128,7 +132,7 @@ GetPluginFile(const nsAString& aPluginPath,
+   return true;
+ }
+ 
+-#ifdef XP_WIN
++#if defined(XP_WIN) || defined(XP_LINUX)
+ static bool
+ GetInfoFile(const nsAString& aPluginPath,
+             nsCOMPtr<nsIFile>& aInfoFile)
+@@ -319,7 +323,7 @@ ReadIntoArray(nsIFile* aFile,
+   return (bytesRead == length);
+ }
+ 
+-#ifdef XP_WIN
++#if defined(XP_WIN) || defined(XP_LINUX)
+ static bool
+ ReadIntoString(nsIFile* aFile,
+                nsCString& aOutDst,
+@@ -383,12 +387,18 @@ GMPChild::PreLoadLibraries(const nsAString& aPluginPath)
+     SplitAt(",", Substring(line, offset + strlen(libraries)), libs);
+     for (nsCString lib : libs) {
+       lib.Trim(" ");
++#ifdef XP_WIN
+       for (const char* whiteListedLib : whitelist) {
+         if (lib.EqualsASCII(whiteListedLib)) {
+           LoadLibraryA(lib.get());
+           break;
+         }
+       }
++#endif
++#ifdef XP_LINUX
++      // XXX: no whitelist?
++      dlopen(lib.get(), RTLD_NOW | RTLD_GLOBAL);
++#endif
+     }
+   }
+ 
+@@ -430,7 +440,7 @@ GMPChild::AnswerStartPlugin()
+ {
+   LOGD("%s", __FUNCTION__);
+ 
+-#if defined(XP_WIN)
++#if defined(XP_WIN) || defined(XP_LINUX)
+   PreLoadLibraries(mPluginPath);
+ #endif
+   if (!PreLoadPluginVoucher()) {
+diff --git a/dom/media/gmp/GMPChild.h b/dom/media/gmp/GMPChild.h
+index 83956b2..9aad56f 100644
+--- a/dom/media/gmp/GMPChild.h
++++ b/dom/media/gmp/GMPChild.h
+@@ -31,7 +31,7 @@ public:
+             base::ProcessId aParentPid,
+             MessageLoop* aIOLoop,
+             IPC::Channel* aChannel);
+-#ifdef XP_WIN
++#if defined(XP_WIN) || defined(XP_LINUX)
+   bool PreLoadLibraries(const nsAString& aPluginPath);
+ #endif
+   MessageLoop* GMPMessageLoop();
+diff --git a/security/sandbox/linux/SandboxFilter.cpp b/security/sandbox/linux/SandboxFilter.cpp
+index 2c01b56..f1fa351 100644
+--- a/security/sandbox/linux/SandboxFilter.cpp
++++ b/security/sandbox/linux/SandboxFilter.cpp
+@@ -145,7 +145,11 @@ public:
+     case __NR_clock_gettime: {
+       Arg<clockid_t> clk_id(0);
+       return If(clk_id == CLOCK_MONOTONIC, Allow())
++        .ElseIf(clk_id == CLOCK_MONOTONIC_COARSE, Allow())
++        .ElseIf(clk_id == CLOCK_PROCESS_CPUTIME_ID, Allow())
+         .ElseIf(clk_id == CLOCK_REALTIME, Allow())
++        .ElseIf(clk_id == CLOCK_REALTIME_COARSE, Allow())
++        .ElseIf(clk_id == CLOCK_THREAD_CPUTIME_ID, Allow())
+         .Else(InvalidSyscall());
+     }
+     case __NR_gettimeofday:
+@@ -711,6 +715,9 @@ public:
+         .Else(InvalidSyscall());
+     }
+ 
++    case __NR_brk:
++      return Allow();
++
+     default:
+       return SandboxPolicyCommon::EvaluateSyscall(sysno);
+     }
