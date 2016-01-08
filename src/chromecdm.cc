@@ -331,7 +331,10 @@ public:
                          uint32_t system_code, const char *error_message,
                          uint32_t error_message_length) override
     {
-        LOGZ << "crcdm::Host::OnLegacySessionError\n";
+        LOGZ << format("crcdm::Host::OnLegacySessionError session_id=%1%, session_id_length=%2%, "
+                "error=%3%, system_code=%4%, error_message=%5%, error_message_length=%6%\n") %
+                string(session_id, session_id_length) % session_id_length % error % system_code %
+                string(error_message, error_message_length) % error_message_length;
     }
 
     virtual void
