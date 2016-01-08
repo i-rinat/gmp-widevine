@@ -254,7 +254,9 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
 void
 WidevineAdapter::DecryptingComplete()
 {
-    LOGZ << "fxcdm::WidevineAdapter::DecryptingComplete (void)\n";
+    LOGF << "fxcdm::WidevineAdapter::DecryptingComplete (void)\n";
+
+    delete this;
 }
 
 
