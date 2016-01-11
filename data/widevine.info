@@ -1,5 +1,5 @@
 Name: widevine
 Description: Widevine Gecko Media Plugin Adapter
 Version: 1
-APIs: eme-decrypt-v8[com.widevine.alpha]
+APIs: eme-decrypt-v8[com.widevine.alpha], decode-audio[aac:com.widevine.alpha], decode-video[h264:com.widevine.alpha]
 Libraries: /opt/google/chrome/libwidevinecdm.so

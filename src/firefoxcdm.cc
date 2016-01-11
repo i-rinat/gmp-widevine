@@ -102,7 +102,8 @@ WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 {
     LOGF << format("fxcdm::WidevineAdapter::Init aCallback=%1%\n") % aCallback;
     host_interface = aCallback;
-    fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO | GMP_EME_CAP_DECRYPT_VIDEO);
+    fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AND_DECODE_AUDIO |
+                                   GMP_EME_CAP_DECRYPT_AND_DECODE_VIDEO);
 
     crcdm::Initialize();
 }
