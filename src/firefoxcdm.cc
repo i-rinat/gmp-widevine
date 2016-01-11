@@ -281,12 +281,74 @@ ModuleAsyncShutdown::~ModuleAsyncShutdown()
 }
 
 
+string
+GMPVideoCodec_to_string(const GMPVideoCodec &a)
+{
+    std::stringstream s;
+
+    s << format("{.mGMPApiVersion=%1%, .mCodecType=%2%, .mPLName=%3%, .mPLType=%4%, .mWidth=%5%, "
+         ".mHeight=%6%, .mStartBitrate=%7%, .mMaxBitrate=%8%, .mMinBitrate=%9%, .mMaxFramerate=%10%"
+         ", .mFrameDroppingOn=%11%, .mKeyFrameInterval=%12%, .mQPMax=%13%, "
+         ".mNumberOfSimulcastStreams=%14%, .mSimulcastStream={") % a.mGMPApiVersion % a.mCodecType %
+         a.mPLName % a.mPLType % a.mWidth % a.mHeight % a.mStartBitrate % a.mMaxBitrate %
+         a.mMinBitrate % a.mMaxFramerate % a.mFrameDroppingOn % a.mKeyFrameInterval % a.mQPMax %
+         a.mNumberOfSimulcastStreams;
+
+    for (uint32_t k = 0; k < a.mNumberOfSimulcastStreams; k ++) {
+        const GMPSimulcastStream &b = a.mSimulcastStream[k];
+
+        if (k > 0)
+            s << ", ";
+
+        s << format("{.mWidth=%1%, .mHeight=%2%, .mNumberOfTemporalLayers=%3%, .mMaxBitrate=%4%, "
+             ".mTargetBitrate=%5%, .mMinBitrate=%6%, .mQPMax=%7%}") % b.mWidth % b.mHeight %
+             b.mNumberOfTemporalLayers % b.mMaxBitrate % b.mTargetBitrate % b.mMinBitrate %
+             b.mQPMax;
+    }
+
+    s << format("}, .mMode=%1%}") % a.mMode;
+
+    return s.str();
+}
+
 void
 VideoDecoder::InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCodecSpecific,
                          uint32_t aCodecSpecificLength, GMPVideoDecoderCallback *aCallback,
                          int32_t aCoreCount)
 {
-    LOGZ << "fxcdm::VideoDecoder::InitDecode\n";
+    LOGF << format("fxcdm::VideoDecoder::InitDecode aCodecSettings=%1%, aCodecSpecific=%2%, "
+            "aCodecSpecificLength=%3%, aCallback=%4%, aCoreCount=%5%\n") %
+            GMPVideoCodec_to_string(aCodecSettings) % static_cast<const void *>(aCodecSpecific) %
+            aCodecSpecificLength % aCallback % aCoreCount;
+
+    dec_cb_ = aCallback;
+
+    cdm::VideoDecoderConfig video_decoder_config;
+
+    switch (aCodecSettings.mCodecType) {
+    default:
+    case kGMPVideoCodecVP8:
+        LOGZ << "  not implemented\n";
+        return;
+        break;
+
+    case kGMPVideoCodecH264:
+
+        video_decoder_config.codec = cdm::VideoDecoderConfig::kCodecH264;
+        video_decoder_config.profile = cdm::VideoDecoderConfig::kH264ProfileHigh; // TODO: ?
+        video_decoder_config.format = cdm::kYv12; // TODO: ?
+        video_decoder_config.coded_size.width = aCodecSettings.mWidth;
+        video_decoder_config.coded_size.height = aCodecSettings.mHeight;
+
+        video_decoder_config.extra_data = const_cast<uint8_t *>(aCodecSpecific) + 1;
+        video_decoder_config.extra_data_size = aCodecSpecificLength - 1;
+
+        break;
+    }
+
+    cdm::Status status = crcdm::get()->InitializeVideoDecoder(video_decoder_config);
+
+    LOGF << format("   InitializeVideoDecoder() returned %1%\n") % status;
 }
 
 void
@@ -300,19 +362,21 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
 void
 VideoDecoder::Reset()
 {
-    LOGZ << "fxcdm::VideoDecoder::Reset\n";
+    LOGF << "fxcdm::VideoDecoder::Reset (void)\n";
+    crcdm::get()->ResetDecoder(cdm::kStreamTypeVideo);
+    dec_cb_->ResetComplete();
 }
 
 void
 VideoDecoder::Drain()
 {
-    LOGZ << "fxcdm::VideoDecoder::Drain\n";
+    LOGZ << "fxcdm::VideoDecoder::Drain (void)\n";
 }
 
 void
 VideoDecoder::DecodingComplete()
 {
-    LOGZ << "fxcdm::VideoDecoder::DecodingComplete\n";
+    LOGZ << "fxcdm::VideoDecoder::DecodingComplete (void)\n";
 }
 
 

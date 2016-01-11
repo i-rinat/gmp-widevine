@@ -119,6 +119,9 @@ public:
 
     virtual void
     DecodingComplete() override;
+
+private:
+    GMPVideoDecoderCallback *dec_cb_ = nullptr;
 };
 
 inline std::string
