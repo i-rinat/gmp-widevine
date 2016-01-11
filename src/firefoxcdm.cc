@@ -376,7 +376,8 @@ VideoDecoder::Drain()
 void
 VideoDecoder::DecodingComplete()
 {
-    LOGZ << "fxcdm::VideoDecoder::DecodingComplete (void)\n";
+    LOGF << "fxcdm::VideoDecoder::DecodingComplete (void)\n";
+    delete this;
 }
 
 
