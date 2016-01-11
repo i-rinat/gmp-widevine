@@ -84,6 +84,144 @@ private:
 };
 
 
+class VideoFrameImpl final : public cdm::VideoFrame
+{
+public:
+    virtual void
+    SetFormat(cdm::VideoFormat fmt) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetFormat fmt=%1%\n") % fmt;
+        fmt_ = fmt;
+    }
+
+    virtual cdm::VideoFormat
+    Format() const override
+    {
+        LOGF << "fxcdm::VideoFrameImpl::Format (void)\n";
+        return fmt_;
+    }
+
+    virtual void
+    SetSize(cdm::Size size) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetSize size={.width=%1%, .height=%2%}\n") %
+                size.width % size.height;
+        size_ = size;
+    }
+
+    virtual cdm::Size
+    Size() const override
+    {
+        LOGF << "fxcdm::VideoFrameImpl::Size (void)\n";
+        return size_;
+    }
+
+    virtual void
+    SetFrameBuffer(cdm::Buffer *frame_buffer) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetFrameBuffer frame_buffer=%1%\n") %
+                static_cast<const void *>(frame_buffer);
+        frame_buffer_ = frame_buffer;
+    }
+
+    virtual cdm::Buffer *
+    FrameBuffer() override
+    {
+        LOGF << "fxcdm::VideoFrameImpl::FrameBuffer (void)\n";
+        return frame_buffer_;
+    }
+
+    virtual void
+    SetPlaneOffset(cdm::VideoFrame::VideoPlane plane, uint32_t offset) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetPlaneOffset plane=%1%, offset=%2%\n") % plane %
+                offset;
+
+        switch (plane) {
+        case cdm::VideoFrame::kYPlane:
+        case cdm::VideoFrame::kUPlane:
+        case cdm::VideoFrame::kVPlane:
+            plane_ofs_[plane] = offset;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    virtual uint32_t
+    PlaneOffset(cdm::VideoFrame::VideoPlane plane) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::PlaneOffset plane=%1%\n") % plane;
+
+        switch (plane) {
+        case cdm::VideoFrame::kYPlane:
+        case cdm::VideoFrame::kUPlane:
+        case cdm::VideoFrame::kVPlane:
+            return plane_ofs_[plane];
+
+        default:
+            return 0;
+        }
+    }
+
+    virtual void
+    SetStride(cdm::VideoFrame::VideoPlane plane, uint32_t stride) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetStride plane=%1%, stride=%2%\n") % plane % stride;
+
+        switch (plane) {
+        case cdm::VideoFrame::kYPlane:
+        case cdm::VideoFrame::kUPlane:
+        case cdm::VideoFrame::kVPlane:
+            stride_[plane] = stride;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    virtual uint32_t
+    Stride(cdm::VideoFrame::VideoPlane plane) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::Stride plane=%1%\n") % plane;
+
+        switch (plane) {
+        case cdm::VideoFrame::kYPlane:
+        case cdm::VideoFrame::kUPlane:
+        case cdm::VideoFrame::kVPlane:
+            return stride_[plane];
+
+        default:
+            return 0;
+        }
+    }
+
+    virtual void
+    SetTimestamp(int64_t timestamp) override
+    {
+        LOGF << format("fxcdm::VideoFrameImpl::SetTimestamp timestamp=%1%\n") % timestamp;
+        timestamp_ = timestamp;
+    }
+
+    virtual int64_t
+    Timestamp() const override
+    {
+        LOGF << "fxcdm::VideoFrameImpl::Timestamp (void)\n";
+        return timestamp_;
+    }
+
+private:
+    int64_t             timestamp_ = 0;
+    cdm::VideoFormat    fmt_ = cdm::kUnknownVideoFormat;
+    cdm::Size           size_;
+    cdm::Buffer        *frame_buffer_ = nullptr;
+    uint32_t            plane_ofs_[cdm::VideoFrame::kMaxPlanes] = {};
+    uint32_t            stride_[cdm::VideoFrame::kMaxPlanes] = {};
+};
+
+
 Module::Module()
 {
 }
@@ -356,7 +494,49 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
                      const uint8_t *aCodecSpecificInfo, uint32_t aCodecSpecificInfoLength,
                      int64_t aRenderTimeMs)
 {
-    LOGZ << "fxcdm::VideoDecoder::Decode\n";
+    LOGZ << format("fxcdm::VideoDecoder::Decode aInputFrame=%1%, aMissingFrames=%2%, "
+            "aCodecSpecificInfo=%3%, aCodecSpecificInfoLength=%4%, aRenderTimeMs=%5%\n") %
+            aInputFrame % aMissingFrames % static_cast<const void *>(aCodecSpecificInfo) %
+            aCodecSpecificInfoLength % aRenderTimeMs;
+
+    cdm::InputBuffer inp_buf;
+
+    LOGZ << format("   data = %1%, data_size = %2%\n") %
+            static_cast<const void *>(aInputFrame->Buffer()) % aInputFrame->Size();
+
+    inp_buf.data = aInputFrame->Buffer();
+    inp_buf.data_size = aInputFrame->Size();
+
+    vector<cdm::SubsampleEntry> subsamples;
+    const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
+    LOGZ << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
+
+    if (metadata) {
+        inp_buf.key_id = metadata->KeyId();
+        inp_buf.key_id_size = metadata->KeyIdSize();
+
+        inp_buf.iv = metadata->IV();
+        inp_buf.iv_size = metadata->IVSize();
+
+        LOGZ << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
+        LOGZ << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
+        LOGF << format("   subsamples (clear, cipher) = %1%\n") %
+            subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
+                                 metadata->CipherBytes());
+
+        inp_buf.num_subsamples = metadata->NumSubsamples();
+        for (uint32_t k = 0; k < inp_buf.num_subsamples; k ++)
+            subsamples.emplace_back(metadata->ClearBytes()[k], metadata->CipherBytes()[k]);
+
+        inp_buf.subsamples = &subsamples[0];
+    }
+
+    platform_api->getcurrenttime(&inp_buf.timestamp);
+    inp_buf.timestamp *= 1000;
+
+    VideoFrameImpl vf;
+    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, &vf);
+    LOGZ << format("   DecryptAndDecodeFrame returned %1%\n") % status;
 }
 
 void
