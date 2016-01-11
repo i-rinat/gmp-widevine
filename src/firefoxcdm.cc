@@ -28,6 +28,7 @@
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
 #include "log.hh"
+#include <arpa/inet.h>
 
 
 namespace fxcdm {
@@ -504,8 +505,33 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
     LOGZ << format("   data = %1%, data_size = %2%\n") %
             static_cast<const void *>(aInputFrame->Buffer()) % aInputFrame->Size();
 
-    inp_buf.data = aInputFrame->Buffer();
-    inp_buf.data_size = aInputFrame->Size();
+    //LOGZ << format("   data = %1%\n") % to_hex_string(aInputFrame->Buffer(), aInputFrame->Size());
+    LOGZ << format("   BufferType() = %1%\n") % aInputFrame->BufferType();
+
+    // TODO: works only for BufferType == 4
+    std::vector<uint8_t> buf(aInputFrame->Size());
+    uint8_t *pos = buf.data();
+    uint8_t *last = pos + buf.size();
+    memcpy(pos, aInputFrame->Buffer(), buf.size());
+    while (pos < last) {
+        if (pos + 4 > last)
+            break;
+
+        uint32_t len = 0;
+        const uint32_t delimiter = htonl(0x01);
+
+        memcpy(&len, pos, sizeof(len));
+        memcpy(pos, &delimiter, sizeof(delimiter));
+        pos += sizeof(len);
+        len = ntohl(len);
+
+        pos += len;
+    }
+
+    inp_buf.data = buf.data();
+    inp_buf.data_size = buf.size();;
+
+    //LOGZ << format("   data = %1%\n") % to_hex_string(buf.data(), buf.size());
 
     vector<cdm::SubsampleEntry> subsamples;
     const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
@@ -537,6 +563,11 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
     VideoFrameImpl vf;
     cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, &vf);
     LOGZ << format("   DecryptAndDecodeFrame returned %1%\n") % status;
+
+    if (status == cdm::kNeedMoreData) {
+        LOGZ << "   calling dec_cb_->InputDataExhausted()\n";
+        dec_cb_->InputDataExhausted();
+    }
 }
 
 void
