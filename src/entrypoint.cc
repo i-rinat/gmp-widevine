@@ -56,12 +56,19 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 
     try {
         if (api_name == GMP_API_DECRYPTOR) {
+
             *aPluginAPI = new fxcdm::Module();
             return GMPNoErr;
 
         } else if (api_name == GMP_API_ASYNC_SHUTDOWN) {
+
             *aPluginAPI = new fxcdm::ModuleAsyncShutdown(
                                     static_cast<GMPAsyncShutdownHost *>(aHostAPI));
+            return GMPNoErr;
+
+        } else if (api_name == GMP_API_VIDEO_DECODER) {
+
+            *aPluginAPI = new fxcdm::VideoDecoder();
             return GMPNoErr;
 
         } else {

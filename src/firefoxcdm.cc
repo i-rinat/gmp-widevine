@@ -280,6 +280,42 @@ ModuleAsyncShutdown::~ModuleAsyncShutdown()
     // TODO: delete self?
 }
 
+
+void
+VideoDecoder::InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCodecSpecific,
+                         uint32_t aCodecSpecificLength, GMPVideoDecoderCallback *aCallback,
+                         int32_t aCoreCount)
+{
+    LOGZ << "fxcdm::VideoDecoder::InitDecode\n";
+}
+
+void
+VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
+                     const uint8_t *aCodecSpecificInfo, uint32_t aCodecSpecificInfoLength,
+                     int64_t aRenderTimeMs)
+{
+    LOGZ << "fxcdm::VideoDecoder::Decode\n";
+}
+
+void
+VideoDecoder::Reset()
+{
+    LOGZ << "fxcdm::VideoDecoder::Reset\n";
+}
+
+void
+VideoDecoder::Drain()
+{
+    LOGZ << "fxcdm::VideoDecoder::Drain\n";
+}
+
+void
+VideoDecoder::DecodingComplete()
+{
+    LOGZ << "fxcdm::VideoDecoder::DecodingComplete\n";
+}
+
+
 void
 set_platform_api(const GMPPlatformAPI *api)
 {

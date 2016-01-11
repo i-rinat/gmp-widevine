@@ -26,6 +26,7 @@
 
 #include <gmp/gmp-decryption.h>
 #include <gmp/gmp-async-shutdown.h>
+#include <gmp/gmp-video-decode.h>
 #include <memory>
 #include <sstream>
 #include <boost/format.hpp>
@@ -96,6 +97,30 @@ private:
     GMPAsyncShutdownHost *host_api_;
 };
 
+
+class VideoDecoder final : public GMPVideoDecoder
+{
+public:
+    virtual void
+    InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCodecSpecific,
+               uint32_t aCodecSpecificLength, GMPVideoDecoderCallback *aCallback,
+               int32_t aCoreCount) override;
+
+    virtual void
+    Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
+           const uint8_t *aCodecSpecificInfo, uint32_t aCodecSpecificInfoLength,
+           int64_t aRenderTimeMs = -1) override;
+
+    virtual void
+    Reset() override;
+
+    virtual void
+    Drain() override;
+
+    virtual void
+    DecodingComplete() override;
+};
+
 inline std::string
 to_hex_string(const uint8_t *data, uint32_t len)
 {
@@ -109,6 +134,7 @@ to_hex_string(const uint8_t *data, uint32_t len)
 
     return s.str();
 }
+
 
 inline std::string
 subsamples_to_string(uint32_t num, const uint16_t *clear, const uint32_t *cipher)
