@@ -42,13 +42,13 @@ get_platform_api();
 GMPDecryptorCallback *
 host();
 
-class WidevineAdapter final : public GMPDecryptor
+class Module final : public GMPDecryptor
 {
 public:
-    WidevineAdapter();
+    Module();
 
     virtual
-    ~WidevineAdapter();
+    ~Module();
 
     virtual void
     Init(GMPDecryptorCallback *aCallback) override;
@@ -80,18 +80,14 @@ public:
 
     virtual void
     DecryptingComplete() override;
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> priv;
 };
 
-class WidevineAdapterAsyncShutdown final : public GMPAsyncShutdown
+class ModuleAsyncShutdown final : public GMPAsyncShutdown
 {
 public:
-    explicit WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost *host_api);
+    explicit ModuleAsyncShutdown(GMPAsyncShutdownHost *host_api);
 
-    ~WidevineAdapterAsyncShutdown();
+    ~ModuleAsyncShutdown();
 
     void
     BeginShutdown() override;

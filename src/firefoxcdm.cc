@@ -84,23 +84,18 @@ private:
 };
 
 
-struct WidevineAdapter::Impl {
-    int dummy;
-};
-
-WidevineAdapter::WidevineAdapter()
-    : priv(new Impl)
+Module::Module()
 {
 }
 
-WidevineAdapter::~WidevineAdapter()
+Module::~Module()
 {
 }
 
 void
-WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
+Module::Init(GMPDecryptorCallback *aCallback)
 {
-    LOGF << format("fxcdm::WidevineAdapter::Init aCallback=%1%\n") % aCallback;
+    LOGF << format("fxcdm::Module::Init aCallback=%1%\n") % aCallback;
     host_interface = aCallback;
     fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AND_DECODE_AUDIO |
                                    GMP_EME_CAP_DECRYPT_AND_DECODE_VIDEO);
@@ -109,12 +104,11 @@ WidevineAdapter::Init(GMPDecryptorCallback *aCallback)
 }
 
 void
-WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId,
-                               const char *aInitDataType, uint32_t aInitDataTypeSize,
-                               const uint8_t *aInitData, uint32_t aInitDataSize,
-                               GMPSessionType aSessionType)
+Module::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId, const char *aInitDataType,
+                      uint32_t aInitDataTypeSize, const uint8_t *aInitData, uint32_t aInitDataSize,
+                      GMPSessionType aSessionType)
 {
-    LOGF << format("fxcdm::WidevineAdapter::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
+    LOGF << format("fxcdm::Module::CreateSession aCreateSessionToken=%u, aPromiseId=%u, "
             "aInitDataType=%s, aInitDataTypeSize=%u, aInitData=%p, aInitDataSize=%u, "
             "aSessionType=%u\n") % aCreateSessionToken % aPromiseId % aInitDataType %
             aInitDataTypeSize % static_cast<const void *>(aInitData) % aInitDataSize % aSessionType;
@@ -146,17 +140,16 @@ WidevineAdapter::CreateSession(uint32_t aCreateSessionToken, uint32_t aPromiseId
 }
 
 void
-WidevineAdapter::LoadSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
+Module::LoadSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
 {
-    LOGZ << "fxcdm::WidevineAdapter::LoadSession\n";
+    LOGZ << "fxcdm::Module::LoadSession\n";
 }
 
 void
-WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
-                               uint32_t aSessionIdLength, const uint8_t *aResponse,
-                               uint32_t aResponseSize)
+Module::UpdateSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength,
+                      const uint8_t *aResponse, uint32_t aResponseSize)
 {
-    LOGF << format("fxcdm::WidevineAdapter::UpdateSession aPromiseId=%1%, aSessionId=%2%, "
+    LOGF << format("fxcdm::Module::UpdateSession aPromiseId=%1%, aSessionId=%2%, "
             "aSessionIdLength=%3%, aResponse=%4%, aResponseSize=%5%\n") % aPromiseId %
             string(aSessionId, aSessionIdLength) % aSessionIdLength %
             static_cast<const void *>(aResponse) % aResponseSize;
@@ -165,10 +158,9 @@ WidevineAdapter::UpdateSession(uint32_t aPromiseId, const char *aSessionId,
 }
 
 void
-WidevineAdapter::CloseSession(uint32_t aPromiseId, const char *aSessionId,
-                              uint32_t aSessionIdLength)
+Module::CloseSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
 {
-    LOGF << format("fxcdm::WidevineAdapter::CloseSession aPromiseId=%1%, aSessionId=%2%, "
+    LOGF << format("fxcdm::Module::CloseSession aPromiseId=%1%, aSessionId=%2%, "
             "aSessionIdLength=%3%\n") % aPromiseId % string(aSessionId, aSessionIdLength) %
             aSessionIdLength;
 
@@ -176,23 +168,22 @@ WidevineAdapter::CloseSession(uint32_t aPromiseId, const char *aSessionId,
 }
 
 void
-WidevineAdapter::RemoveSession(uint32_t aPromiseId, const char *aSessionId,
-                               uint32_t aSessionIdLength)
+Module::RemoveSession(uint32_t aPromiseId, const char *aSessionId, uint32_t aSessionIdLength)
 {
-    LOGZ << "fxcdm::WidevineAdapter::RemoveSession\n";
+    LOGZ << "fxcdm::Module::RemoveSession\n";
 }
 
 void
-WidevineAdapter::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServerCert,
-                                      uint32_t aServerCertSize)
+Module::SetServerCertificate(uint32_t aPromiseId, const uint8_t *aServerCert,
+                             uint32_t aServerCertSize)
 {
-    LOGZ << "fxcdm::WidevineAdapter::SetServerCertificate\n";
+    LOGZ << "fxcdm::Module::SetServerCertificate\n";
 }
 
 void
-WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
+Module::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
 {
-    LOGF << format("fxcdm::WidevineAdapter::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
+    LOGF << format("fxcdm::Module::Decrypt aBuffer=%p, aMetadata=%p\n") % aBuffer %
             aMetadata;
     LOGF << format("   aBuffer->Id() = %u, aBuffer->Size() = %u\n") % aBuffer->Id() %
             aBuffer->Size();
@@ -259,9 +250,9 @@ WidevineAdapter::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetada
 }
 
 void
-WidevineAdapter::DecryptingComplete()
+Module::DecryptingComplete()
 {
-    LOGF << "fxcdm::WidevineAdapter::DecryptingComplete (void)\n";
+    LOGF << "fxcdm::Module::DecryptingComplete (void)\n";
 
     crcdm::Deinitialize();
 
@@ -269,23 +260,23 @@ WidevineAdapter::DecryptingComplete()
 }
 
 
-WidevineAdapterAsyncShutdown::WidevineAdapterAsyncShutdown(GMPAsyncShutdownHost *host_api)
+ModuleAsyncShutdown::ModuleAsyncShutdown(GMPAsyncShutdownHost *host_api)
     : host_api_(host_api)
 {
 }
 
 void
-WidevineAdapterAsyncShutdown::BeginShutdown()
+ModuleAsyncShutdown::BeginShutdown()
 {
-    LOGF << "fxcdm::WidevineAdapterAsyncShutdown::BeginShutdown (void)\n";
+    LOGF << "fxcdm::ModuleAsyncShutdown::BeginShutdown (void)\n";
 
     // there is nothing to close asynchronously
     host_api_->ShutdownComplete();
 }
 
-WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown()
+ModuleAsyncShutdown::~ModuleAsyncShutdown()
 {
-    LOGF << "fxcdm::WidevineAdapterAsyncShutdown::~WidevineAdapterAsyncShutdown (void)\n";
+    LOGF << "fxcdm::ModuleAsyncShutdown::~ModuleAsyncShutdown (void)\n";
     // TODO: delete self?
 }
 

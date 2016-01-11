@@ -56,11 +56,11 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 
     try {
         if (api_name == GMP_API_DECRYPTOR) {
-            *aPluginAPI = new fxcdm::WidevineAdapter();
+            *aPluginAPI = new fxcdm::Module();
             return GMPNoErr;
 
         } else if (api_name == GMP_API_ASYNC_SHUTDOWN) {
-            *aPluginAPI = new fxcdm::WidevineAdapterAsyncShutdown(
+            *aPluginAPI = new fxcdm::ModuleAsyncShutdown(
                                     static_cast<GMPAsyncShutdownHost *>(aHostAPI));
             return GMPNoErr;
 
