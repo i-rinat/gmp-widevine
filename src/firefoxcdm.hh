@@ -27,6 +27,7 @@
 #include <gmp/gmp-decryption.h>
 #include <gmp/gmp-async-shutdown.h>
 #include <gmp/gmp-video-decode.h>
+#include <gmp/gmp-video-host.h>
 #include <memory>
 #include <sstream>
 #include <boost/format.hpp>
@@ -101,6 +102,10 @@ private:
 class VideoDecoder final : public GMPVideoDecoder
 {
 public:
+    VideoDecoder(GMPVideoHost *host_api)
+        : host_api_(host_api)
+    {}
+
     virtual void
     InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCodecSpecific,
                uint32_t aCodecSpecificLength, GMPVideoDecoderCallback *aCallback,
@@ -122,6 +127,7 @@ public:
 
 private:
     GMPVideoDecoderCallback *dec_cb_ = nullptr;
+    GMPVideoHost            *host_api_;
 };
 
 inline std::string

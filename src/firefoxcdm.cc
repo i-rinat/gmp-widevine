@@ -85,144 +85,6 @@ private:
 };
 
 
-class VideoFrameImpl final : public cdm::VideoFrame
-{
-public:
-    virtual void
-    SetFormat(cdm::VideoFormat fmt) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetFormat fmt=%1%\n") % fmt;
-        fmt_ = fmt;
-    }
-
-    virtual cdm::VideoFormat
-    Format() const override
-    {
-        LOGF << "fxcdm::VideoFrameImpl::Format (void)\n";
-        return fmt_;
-    }
-
-    virtual void
-    SetSize(cdm::Size size) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetSize size={.width=%1%, .height=%2%}\n") %
-                size.width % size.height;
-        size_ = size;
-    }
-
-    virtual cdm::Size
-    Size() const override
-    {
-        LOGF << "fxcdm::VideoFrameImpl::Size (void)\n";
-        return size_;
-    }
-
-    virtual void
-    SetFrameBuffer(cdm::Buffer *frame_buffer) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetFrameBuffer frame_buffer=%1%\n") %
-                static_cast<const void *>(frame_buffer);
-        frame_buffer_ = frame_buffer;
-    }
-
-    virtual cdm::Buffer *
-    FrameBuffer() override
-    {
-        LOGF << "fxcdm::VideoFrameImpl::FrameBuffer (void)\n";
-        return frame_buffer_;
-    }
-
-    virtual void
-    SetPlaneOffset(cdm::VideoFrame::VideoPlane plane, uint32_t offset) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetPlaneOffset plane=%1%, offset=%2%\n") % plane %
-                offset;
-
-        switch (plane) {
-        case cdm::VideoFrame::kYPlane:
-        case cdm::VideoFrame::kUPlane:
-        case cdm::VideoFrame::kVPlane:
-            plane_ofs_[plane] = offset;
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    virtual uint32_t
-    PlaneOffset(cdm::VideoFrame::VideoPlane plane) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::PlaneOffset plane=%1%\n") % plane;
-
-        switch (plane) {
-        case cdm::VideoFrame::kYPlane:
-        case cdm::VideoFrame::kUPlane:
-        case cdm::VideoFrame::kVPlane:
-            return plane_ofs_[plane];
-
-        default:
-            return 0;
-        }
-    }
-
-    virtual void
-    SetStride(cdm::VideoFrame::VideoPlane plane, uint32_t stride) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetStride plane=%1%, stride=%2%\n") % plane % stride;
-
-        switch (plane) {
-        case cdm::VideoFrame::kYPlane:
-        case cdm::VideoFrame::kUPlane:
-        case cdm::VideoFrame::kVPlane:
-            stride_[plane] = stride;
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    virtual uint32_t
-    Stride(cdm::VideoFrame::VideoPlane plane) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::Stride plane=%1%\n") % plane;
-
-        switch (plane) {
-        case cdm::VideoFrame::kYPlane:
-        case cdm::VideoFrame::kUPlane:
-        case cdm::VideoFrame::kVPlane:
-            return stride_[plane];
-
-        default:
-            return 0;
-        }
-    }
-
-    virtual void
-    SetTimestamp(int64_t timestamp) override
-    {
-        LOGF << format("fxcdm::VideoFrameImpl::SetTimestamp timestamp=%1%\n") % timestamp;
-        timestamp_ = timestamp;
-    }
-
-    virtual int64_t
-    Timestamp() const override
-    {
-        LOGF << "fxcdm::VideoFrameImpl::Timestamp (void)\n";
-        return timestamp_;
-    }
-
-private:
-    int64_t             timestamp_ = 0;
-    cdm::VideoFormat    fmt_ = cdm::kUnknownVideoFormat;
-    cdm::Size           size_;
-    cdm::Buffer        *frame_buffer_ = nullptr;
-    uint32_t            plane_ofs_[cdm::VideoFrame::kMaxPlanes] = {};
-    uint32_t            stride_[cdm::VideoFrame::kMaxPlanes] = {};
-};
-
-
 Module::Module()
 {
 }
@@ -495,20 +357,25 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
                      const uint8_t *aCodecSpecificInfo, uint32_t aCodecSpecificInfoLength,
                      int64_t aRenderTimeMs)
 {
-    LOGZ << format("fxcdm::VideoDecoder::Decode aInputFrame=%1%, aMissingFrames=%2%, "
+    LOGF << format("fxcdm::VideoDecoder::Decode aInputFrame=%1%, aMissingFrames=%2%, "
             "aCodecSpecificInfo=%3%, aCodecSpecificInfoLength=%4%, aRenderTimeMs=%5%\n") %
             aInputFrame % aMissingFrames % static_cast<const void *>(aCodecSpecificInfo) %
             aCodecSpecificInfoLength % aRenderTimeMs;
 
     cdm::InputBuffer inp_buf;
 
-    LOGZ << format("   data = %1%, data_size = %2%\n") %
+    LOGF << format("   data = %1%, data_size = %2%\n") %
             static_cast<const void *>(aInputFrame->Buffer()) % aInputFrame->Size();
 
-    //LOGZ << format("   data = %1%\n") % to_hex_string(aInputFrame->Buffer(), aInputFrame->Size());
-    LOGZ << format("   BufferType() = %1%\n") % aInputFrame->BufferType();
+    LOGF << format("   BufferType() = %1%\n") % aInputFrame->BufferType();
 
-    // TODO: works only for BufferType == 4
+    if (aInputFrame->BufferType() != 4) {
+        // works only for BufferType == 4, but comments in Firefox say that Gecko shouldn't
+        // generate buffers of other types
+        LOGZ << "   BufferType() != 4 are not implemented\n";
+        return;
+    }
+
     std::vector<uint8_t> buf(aInputFrame->Size());
     uint8_t *pos = buf.data();
     uint8_t *last = pos + buf.size();
@@ -531,11 +398,9 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
     inp_buf.data = buf.data();
     inp_buf.data_size = buf.size();;
 
-    //LOGZ << format("   data = %1%\n") % to_hex_string(buf.data(), buf.size());
-
     vector<cdm::SubsampleEntry> subsamples;
     const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
-    LOGZ << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
+    LOGF << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
 
     if (metadata) {
         inp_buf.key_id = metadata->KeyId();
@@ -544,8 +409,8 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
         inp_buf.iv = metadata->IV();
         inp_buf.iv_size = metadata->IVSize();
 
-        LOGZ << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
-        LOGZ << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
+        LOGF << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
+        LOGF << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
         LOGF << format("   subsamples (clear, cipher) = %1%\n") %
             subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
                                  metadata->CipherBytes());
@@ -560,13 +425,100 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
     platform_api->getcurrenttime(&inp_buf.timestamp);
     inp_buf.timestamp *= 1000;
 
-    VideoFrameImpl vf;
-    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, &vf);
-    LOGZ << format("   DecryptAndDecodeFrame returned %1%\n") % status;
+    crcdm::VideoFrame crvf;
+    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, &crvf);
+    LOGF << format("   DecryptAndDecodeFrame returned %1%\n") % status;
+
+    const auto input_frame_timestamp = aInputFrame->TimeStamp();
+    const auto input_frame_duration = aInputFrame->Duration();
+
+    aInputFrame->Destroy();
 
     if (status == cdm::kNeedMoreData) {
-        LOGZ << "   calling dec_cb_->InputDataExhausted()\n";
-        dec_cb_->InputDataExhausted();
+
+        LOGF << "   calling dec_cb_->InputDataExhausted()\n";
+
+        class InputDataExhaustedTask final : public GMPTask {
+        public:
+            virtual void
+            Destroy() override { delete this; }
+
+            virtual void
+            Run()
+            {
+                LOGF << "   called dec_cb_->InputDataExhausted()\n";
+                dec_cb_->InputDataExhausted();
+            }
+
+            InputDataExhaustedTask(GMPVideoDecoderCallback *dec_cb)
+                : dec_cb_(dec_cb)
+            {}
+
+        private:
+            GMPVideoDecoderCallback *dec_cb_;
+        };
+
+        fxcdm::get_platform_api()->runonmainthread(new InputDataExhaustedTask(dec_cb_));
+
+    } else if (status == cdm::kSuccess) {
+
+        GMPVideoFrame *fxvf = nullptr;
+        auto err = host_api_->CreateFrame(kGMPI420VideoFrame, &fxvf);
+        if (GMP_FAILED(err)) {
+            LOGZ << format("   CreateFrame failed with code %1%\n") % err;
+            return;
+        }
+
+        cdm::Buffer *crbuf = crvf.FrameBuffer();
+        auto fxvf_i420 = static_cast<GMPVideoi420Frame *>(fxvf);
+        auto sz = crvf.Size();
+        fxvf_i420->CreateFrame(crvf.Stride(cdm::VideoFrame::kYPlane) * sz.height,
+                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kYPlane),
+
+                               crvf.Stride(cdm::VideoFrame::kUPlane) * sz.height / 2,
+                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kUPlane),
+
+                               crvf.Stride(cdm::VideoFrame::kVPlane) * sz.height / 2,
+                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kVPlane),
+
+                               sz.width, sz.height,
+
+                               crvf.Stride(cdm::VideoFrame::kYPlane),
+                               crvf.Stride(cdm::VideoFrame::kUPlane),
+                               crvf.Stride(cdm::VideoFrame::kVPlane));
+
+        fxvf_i420->SetTimestamp(input_frame_timestamp);
+        fxvf_i420->SetDuration(input_frame_duration);
+
+        LOGF << "   calling dec_cb_->Decoded()\n";
+
+        class DecodedTask final : public GMPTask {
+        public:
+            virtual void
+            Destroy() override { delete this; }
+
+            virtual void
+            Run()
+            {
+                LOGF << "   called dec_cb_->Decoded()\n";
+                dec_cb_->Decoded(fr_);
+                dec_cb_->InputDataExhausted();
+            }
+
+            DecodedTask(GMPVideoDecoderCallback *dec_cb, GMPVideoi420Frame *fr)
+                : dec_cb_(dec_cb)
+                , fr_(fr)
+            {}
+
+        private:
+            GMPVideoDecoderCallback *dec_cb_;
+            GMPVideoi420Frame *fr_;
+        };
+
+        fxcdm::get_platform_api()->runonmainthread(new DecodedTask(dec_cb_, fxvf_i420));
+
+    } else {
+        LOGZ << "   failure\n";
     }
 }
 

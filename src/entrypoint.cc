@@ -68,7 +68,7 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
 
         } else if (api_name == GMP_API_VIDEO_DECODER) {
 
-            *aPluginAPI = new fxcdm::VideoDecoder();
+            *aPluginAPI = new fxcdm::VideoDecoder(static_cast<GMPVideoHost *>(aHostAPI));
             return GMPNoErr;
 
         } else {
