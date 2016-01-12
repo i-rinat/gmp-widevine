@@ -28,6 +28,7 @@
 #include <boost/format.hpp>
 #include <chrono>
 #include "firefoxcdm.hh"
+#include <lib/RefCounted.h>
 
 
 using std::string;
@@ -111,7 +112,7 @@ private:
     cdm::FileIOClient   *file_io_client_ = nullptr;
 };
 
-class FileIO final : public cdm::FileIO {
+class FileIO final : public cdm::FileIO, public RefCounted {
 public:
     virtual void
     Open(const char *file_name, uint32_t file_name_size) override
@@ -144,12 +145,14 @@ public:
     {
         LOGF << "crcdm::FileIO::Close (void)\n";
         rec_->Close();
-        delete this;
+        Release();
     }
 
     FileIO(cdm::FileIOClient *file_io_client)
         : file_io_client_(file_io_client)
-    {}
+    {
+        AddRef();
+    }
 
 private:
     cdm::FileIOClient   *file_io_client_;

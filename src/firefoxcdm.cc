@@ -87,6 +87,7 @@ private:
 
 Module::Module()
 {
+    AddRef();
 }
 
 Module::~Module()
@@ -257,7 +258,7 @@ Module::DecryptingComplete()
 
     crcdm::Deinitialize();
 
-    delete this;
+    Release();
 }
 
 
@@ -540,7 +541,7 @@ void
 VideoDecoder::DecodingComplete()
 {
     LOGF << "fxcdm::VideoDecoder::DecodingComplete (void)\n";
-    delete this;
+    Release();
 }
 
 

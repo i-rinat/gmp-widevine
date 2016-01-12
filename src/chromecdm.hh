@@ -25,8 +25,8 @@
 #pragma once
 
 #include <stdlib.h>
-#include <crcdm/content_decryption_module.h>
-#include <gmp/gmp-decryption.h>
+#include <api/crcdm/content_decryption_module.h>
+#include <api/gmp/gmp-decryption.h>
 #include <boost/format.hpp>
 #include "log.hh"
 

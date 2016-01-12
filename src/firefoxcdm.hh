@@ -24,10 +24,11 @@
 
 #pragma once
 
-#include <gmp/gmp-decryption.h>
-#include <gmp/gmp-async-shutdown.h>
-#include <gmp/gmp-video-decode.h>
-#include <gmp/gmp-video-host.h>
+#include <api/gmp/gmp-decryption.h>
+#include <api/gmp/gmp-async-shutdown.h>
+#include <api/gmp/gmp-video-decode.h>
+#include <api/gmp/gmp-video-host.h>
+#include <lib/RefCounted.h>
 #include <memory>
 #include <sstream>
 #include <boost/format.hpp>
@@ -44,7 +45,7 @@ get_platform_api();
 GMPDecryptorCallback *
 host();
 
-class Module final : public GMPDecryptor
+class Module final : public GMPDecryptor, public RefCounted
 {
 public:
     Module();
@@ -99,12 +100,12 @@ private:
 };
 
 
-class VideoDecoder final : public GMPVideoDecoder
+class VideoDecoder final : public GMPVideoDecoder, public RefCounted
 {
 public:
     VideoDecoder(GMPVideoHost *host_api)
         : host_api_(host_api)
-    {}
+    { AddRef(); }
 
     virtual void
     InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCodecSpecific,

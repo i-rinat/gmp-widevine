@@ -25,8 +25,8 @@
 #include <string>
 #include <boost/format.hpp>
 #include <dlfcn.h>
-#include <gmp/gmp-errors.h>
-#include <gmp/gmp-entrypoints.h>
+#include <api/gmp/gmp-errors.h>
+#include <api/gmp/gmp-entrypoints.h>
 #include "firefoxcdm.hh"
 #include "chromecdm.hh"
 #include "log.hh"
