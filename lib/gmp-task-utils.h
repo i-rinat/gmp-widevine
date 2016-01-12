@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <gmp/gmp-platform.h>
+#include <api/gmp/gmp-platform.h>
 
 class gmp_task_args_base : public GMPTask {
 public:

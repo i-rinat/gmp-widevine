@@ -29,6 +29,8 @@
 #include "chromecdm.hh"
 #include "log.hh"
 #include <arpa/inet.h>
+#include <memory>
+#include <lib/gmp-task-utils.h>
 
 
 namespace fxcdm {
@@ -37,6 +39,8 @@ using boost::format;
 using std::string;
 using std::stringstream;
 using std::vector;
+using std::shared_ptr;
+using std::make_shared;
 
 
 const GMPPlatformAPI *platform_api = nullptr;
@@ -46,6 +50,21 @@ GMPDecryptorCallback *
 host()
 {
     return host_interface;
+}
+
+GMPErr
+to_GMPErr(cdm::Status status)
+{
+    switch (status) {
+    case cdm::kSuccess:         return GMPNoErr;
+    case cdm::kNeedMoreData:    return GMPGenericErr;
+    case cdm::kNoKey:           return GMPNoKeyErr;
+    case cdm::kSessionError:    return GMPGenericErr;
+    case cdm::kDecryptError:    return GMPCryptoErr;
+    case cdm::kDecodeError:     return GMPDecodeErr;
+    case cdm::kDeferredInitialization: return GMPGenericErr;
+    default:                    return GMPGenericErr;
+    }
 }
 
 class DecryptedBlockImpl final : public cdm::DecryptedBlock
@@ -234,19 +253,6 @@ Module::Decrypt(GMPBuffer *aBuffer, GMPEncryptedBufferMetadata *aMetadata)
         return;
     }
 
-    auto to_GMPErr = [](cdm::Status status) {
-        switch (status) {
-        case cdm::kSuccess:         return GMPNoErr;
-        case cdm::kNeedMoreData:    return GMPGenericErr;
-        case cdm::kNoKey:           return GMPNoKeyErr;
-        case cdm::kSessionError:    return GMPGenericErr;
-        case cdm::kDecryptError:    return GMPCryptoErr;
-        case cdm::kDecodeError:     return GMPDecodeErr;
-        case cdm::kDeferredInitialization: return GMPGenericErr;
-        default:                    return GMPGenericErr;
-        }
-    };
-
     // TODO: error handling
     fxcdm::host()->Decrypted(aBuffer, to_GMPErr(decode_status));
 }
@@ -363,24 +369,69 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
             aInputFrame % aMissingFrames % static_cast<const void *>(aCodecSpecificInfo) %
             aCodecSpecificInfoLength % aRenderTimeMs;
 
-    cdm::InputBuffer inp_buf;
-
     LOGF << format("   data = %1%, data_size = %2%\n") %
             static_cast<const void *>(aInputFrame->Buffer()) % aInputFrame->Size();
 
     LOGF << format("   BufferType() = %1%\n") % aInputFrame->BufferType();
 
-    if (aInputFrame->BufferType() != 4) {
-        // works only for BufferType == 4, but comments in Firefox say that Gecko shouldn't
+    auto ddata = make_shared<DecodeData>();
+
+    ddata->buf_type = aInputFrame->BufferType();
+    ddata->buf.assign(aInputFrame->Buffer(), aInputFrame->Buffer() + aInputFrame->Size());
+
+    ddata->inp_buf.data =      ddata->buf.data();
+    ddata->inp_buf.data_size = ddata->buf.size();
+
+    const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
+    LOGF << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
+
+    if (metadata) {
+        ddata->key_id.assign(metadata->KeyId(), metadata->KeyId() + metadata->KeyIdSize());
+        ddata->inp_buf.key_id =      ddata->key_id.data();
+        ddata->inp_buf.key_id_size = ddata->key_id.size();
+
+        ddata->iv.assign(metadata->IV(), metadata->IV() + metadata->IVSize());
+        ddata->inp_buf.iv =      ddata->iv.data();
+        ddata->inp_buf.iv_size = ddata->iv.size();
+
+        LOGF << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
+        LOGF << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
+        LOGF << format("   subsamples (clear, cipher) = %1%\n") %
+            subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
+                                 metadata->CipherBytes());
+
+        ddata->inp_buf.num_subsamples = metadata->NumSubsamples();
+        for (uint32_t k = 0; k < ddata->inp_buf.num_subsamples; k ++)
+            ddata->subsamples.emplace_back(metadata->ClearBytes()[k], metadata->CipherBytes()[k]);
+
+        ddata->inp_buf.subsamples = &ddata->subsamples[0];
+    }
+
+    ddata->inp_buf.timestamp = aInputFrame->TimeStamp();
+    ddata->timestamp = aInputFrame->TimeStamp();
+    ddata->duration = aInputFrame->Duration();
+
+    aInputFrame->Destroy();
+
+    EnsureWorkerIsRunning();
+    worker_thread_->Post(WrapTaskRefCounted(this, &VideoDecoder::DecodeTask, ddata));
+}
+
+void
+VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
+{
+    LOGF << format("fxcdm::VideoDecoder::DecodeTask ddata=%1%\n") % ddata.get();
+
+    if (ddata->buf_type != 4) {
+        // works only for buffer type 4, but comments in Firefox say that Gecko shouldn't
         // generate buffers of other types
         LOGZ << "   BufferType() != 4 are not implemented\n";
         return;
     }
 
-    std::vector<uint8_t> buf(aInputFrame->Size());
-    uint8_t *pos = buf.data();
-    uint8_t *last = pos + buf.size();
-    memcpy(pos, aInputFrame->Buffer(), buf.size());
+    uint8_t *pos = ddata->buf.data();
+    uint8_t *last = pos + ddata->buf.size();
+
     while (pos < last) {
         if (pos + 4 > last)
             break;
@@ -396,130 +447,81 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
         pos += len;
     }
 
-    inp_buf.data = buf.data();
-    inp_buf.data_size = buf.size();;
-
-    vector<cdm::SubsampleEntry> subsamples;
-    const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
-    LOGF << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
-
-    if (metadata) {
-        inp_buf.key_id = metadata->KeyId();
-        inp_buf.key_id_size = metadata->KeyIdSize();
-
-        inp_buf.iv = metadata->IV();
-        inp_buf.iv_size = metadata->IVSize();
-
-        LOGF << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
-        LOGF << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
-        LOGF << format("   subsamples (clear, cipher) = %1%\n") %
-            subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
-                                 metadata->CipherBytes());
-
-        inp_buf.num_subsamples = metadata->NumSubsamples();
-        for (uint32_t k = 0; k < inp_buf.num_subsamples; k ++)
-            subsamples.emplace_back(metadata->ClearBytes()[k], metadata->CipherBytes()[k]);
-
-        inp_buf.subsamples = &subsamples[0];
-    }
-
-    platform_api->getcurrenttime(&inp_buf.timestamp);
-    inp_buf.timestamp *= 1000;
-
-    crcdm::VideoFrame crvf;
-    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, &crvf);
+    auto crvf = make_shared<crcdm::VideoFrame>();
+    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(ddata->inp_buf, crvf.get());
     LOGF << format("   DecryptAndDecodeFrame returned %1%\n") % status;
-
-    const auto input_frame_timestamp = aInputFrame->TimeStamp();
-    const auto input_frame_duration = aInputFrame->Duration();
-
-    aInputFrame->Destroy();
 
     if (status == cdm::kNeedMoreData) {
 
-        LOGF << "   calling dec_cb_->InputDataExhausted()\n";
-
-        class InputDataExhaustedTask final : public GMPTask {
-        public:
-            virtual void
-            Destroy() override { delete this; }
-
-            virtual void
-            Run()
-            {
-                LOGF << "   called dec_cb_->InputDataExhausted()\n";
-                dec_cb_->InputDataExhausted();
-            }
-
-            InputDataExhaustedTask(GMPVideoDecoderCallback *dec_cb)
-                : dec_cb_(dec_cb)
-            {}
-
-        private:
-            GMPVideoDecoderCallback *dec_cb_;
-        };
-
-        fxcdm::get_platform_api()->runonmainthread(new InputDataExhaustedTask(dec_cb_));
+        LOGF << "   scheduling dec_cb_->InputDataExhausted()\n";
+        fxcdm::get_platform_api()->runonmainthread(
+            WrapTask(dec_cb_, &GMPVideoDecoderCallback::InputDataExhausted));
 
     } else if (status == cdm::kSuccess) {
 
-        GMPVideoFrame *fxvf = nullptr;
-        auto err = host_api_->CreateFrame(kGMPI420VideoFrame, &fxvf);
-        if (GMP_FAILED(err)) {
-            LOGZ << format("   CreateFrame failed with code %1%\n") % err;
-            return;
-        }
-
-        cdm::Buffer *crbuf = crvf.FrameBuffer();
-        auto fxvf_i420 = static_cast<GMPVideoi420Frame *>(fxvf);
-        auto sz = crvf.Size();
-        fxvf_i420->CreateFrame(crvf.Stride(cdm::VideoFrame::kYPlane) * sz.height,
-                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kYPlane),
-
-                               crvf.Stride(cdm::VideoFrame::kUPlane) * sz.height / 2,
-                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kUPlane),
-
-                               crvf.Stride(cdm::VideoFrame::kVPlane) * sz.height / 2,
-                               crbuf->Data() + crvf.PlaneOffset(cdm::VideoFrame::kVPlane),
-
-                               sz.width, sz.height,
-
-                               crvf.Stride(cdm::VideoFrame::kYPlane),
-                               crvf.Stride(cdm::VideoFrame::kUPlane),
-                               crvf.Stride(cdm::VideoFrame::kVPlane));
-
-        fxvf_i420->SetTimestamp(input_frame_timestamp);
-        fxvf_i420->SetDuration(input_frame_duration);
-
-        LOGF << "   calling dec_cb_->Decoded()\n";
-
-        class DecodedTask final : public GMPTask {
-        public:
-            virtual void
-            Destroy() override { delete this; }
-
-            virtual void
-            Run()
-            {
-                LOGF << "   called dec_cb_->Decoded()\n";
-                dec_cb_->Decoded(fr_);
-                dec_cb_->InputDataExhausted();
-            }
-
-            DecodedTask(GMPVideoDecoderCallback *dec_cb, GMPVideoi420Frame *fr)
-                : dec_cb_(dec_cb)
-                , fr_(fr)
-            {}
-
-        private:
-            GMPVideoDecoderCallback *dec_cb_;
-            GMPVideoi420Frame *fr_;
-        };
-
-        fxcdm::get_platform_api()->runonmainthread(new DecodedTask(dec_cb_, fxvf_i420));
+        LOGF << "   scheduling DecodedTaskCallDecoded\n";
+        fxcdm::get_platform_api()->runonmainthread(
+            WrapTaskRefCounted(this, &VideoDecoder::DecodedTaskCallDecoded, crvf, ddata->timestamp,
+                               ddata->duration));
 
     } else {
         LOGZ << "   failure\n";
+        fxcdm::get_platform_api()->runonmainthread(
+            WrapTask(dec_cb_, &GMPVideoDecoderCallback::Error, to_GMPErr(status)));
+    }
+}
+
+void
+VideoDecoder::DecodedTaskCallDecoded(shared_ptr<crcdm::VideoFrame> crvf, uint64_t timestamp,
+                                     uint64_t duration)
+{
+    LOGF << format("fxcdm::VideoDecoder::DecodedTaskCallDecoded crvf=%1%\n") % crvf.get();
+
+    GMPVideoFrame *fxvf = nullptr;
+    auto err = host_api_->CreateFrame(kGMPI420VideoFrame, &fxvf);
+    if (GMP_FAILED(err)) {
+        LOGZ << format("   CreateFrame failed with code %1%\n") % err;
+        return;
+    }
+
+    cdm::Buffer *crbuf = crvf->FrameBuffer();
+    auto fxvf_i420 = static_cast<GMPVideoi420Frame *>(fxvf);
+    auto sz = crvf->Size();
+    fxvf_i420->CreateFrame(crvf->Stride(cdm::VideoFrame::kYPlane) * sz.height,
+                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kYPlane),
+
+                           crvf->Stride(cdm::VideoFrame::kUPlane) * sz.height / 2,
+                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kUPlane),
+
+                           crvf->Stride(cdm::VideoFrame::kVPlane) * sz.height / 2,
+                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kVPlane),
+
+                           sz.width, sz.height,
+
+                           crvf->Stride(cdm::VideoFrame::kYPlane),
+                           crvf->Stride(cdm::VideoFrame::kUPlane),
+                           crvf->Stride(cdm::VideoFrame::kVPlane));
+
+    fxvf_i420->SetTimestamp(timestamp);
+    fxvf_i420->SetDuration(duration);
+
+    dec_cb_->Decoded(fxvf_i420);
+    dec_cb_->InputDataExhausted();
+    LOGF << "   called dec_cb_->Decoded()\n";
+}
+
+void
+VideoDecoder::EnsureWorkerIsRunning()
+{
+    LOGF << "fxcdm::VideoDecoder::EnsureWorkerIsRunning (void)\n";
+
+    if (worker_thread_)
+        return;
+
+    fxcdm::get_platform_api()->createthread(&worker_thread_);
+    if (!worker_thread_) {
+        LOGZ << "   failed to create worker thread\n";
+        dec_cb_->Error(GMPAllocErr);
     }
 }
 
@@ -541,6 +543,12 @@ void
 VideoDecoder::DecodingComplete()
 {
     LOGF << "fxcdm::VideoDecoder::DecodingComplete (void)\n";
+
+    if (worker_thread_) {
+        worker_thread_->Join();
+        worker_thread_ = nullptr;
+    }
+
     Release();
 }
 

@@ -28,10 +28,12 @@
 #include <api/gmp/gmp-async-shutdown.h>
 #include <api/gmp/gmp-video-decode.h>
 #include <api/gmp/gmp-video-host.h>
+#include <api/crcdm/content_decryption_module.h>
 #include <lib/RefCounted.h>
 #include <memory>
 #include <sstream>
 #include <boost/format.hpp>
+#include "chromecdm.hh"
 
 
 namespace fxcdm {
@@ -127,8 +129,39 @@ public:
     DecodingComplete() override;
 
 private:
+
+    struct DecodeData {
+        DecodeData()
+            : buf_type(GMP_BufferInvalid)
+            , duration(0)
+            , timestamp(0)
+        {}
+
+        cdm::InputBuffer     inp_buf;
+        GMPBufferType        buf_type;
+        std::vector<uint8_t> buf;
+        uint64_t             duration;
+        uint64_t             timestamp;
+        std::vector<uint8_t> key_id;
+        std::vector<uint8_t> iv;
+        std::vector<cdm::SubsampleEntry> subsamples;
+    };
+
+    void
+    EnsureWorkerIsRunning();
+
+    void
+    DecodeTask(std::shared_ptr<DecodeData> ddata);
+
+    void
+    DecodedTaskCallDecoded(std::shared_ptr<crcdm::VideoFrame> crvf, uint64_t timestamp,
+                           uint64_t duration);
+
+
     GMPVideoDecoderCallback *dec_cb_ = nullptr;
     GMPVideoHost            *host_api_;
+
+    GMPThread               *worker_thread_ = nullptr;
 };
 
 inline std::string
