@@ -354,6 +354,7 @@ VideoDecoder::InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCo
         break;
     }
 
+    // TODO: call on worker thread
     cdm::Status status = crcdm::get()->InitializeVideoDecoder(video_decoder_config);
 
     LOGF << format("   InitializeVideoDecoder() returned %1%\n") % status;
@@ -399,6 +400,7 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
         LOGF << format("   subsamples (clear, cipher) = %1%\n") %
             subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
                                  metadata->CipherBytes());
+        LOGF << format("   timestamp = %1%\n") % aInputFrame->TimeStamp();
 
         ddata->inp_buf.num_subsamples = metadata->NumSubsamples();
         for (uint32_t k = 0; k < ddata->inp_buf.num_subsamples; k ++)
