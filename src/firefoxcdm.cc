@@ -536,7 +536,11 @@ VideoDecoder::Reset()
 void
 VideoDecoder::Drain()
 {
-    LOGZ << "fxcdm::VideoDecoder::Drain (void)\n";
+    LOGF << "fxcdm::VideoDecoder::Drain (void)\n";
+    // chrome interface doesn't have Drain() equivalent.
+    // Since ResetDecoder() should also flush buffers, maybe it would suffice?
+    crcdm::get()->ResetDecoder(cdm::kStreamTypeVideo);
+    dec_cb_->DrainComplete();
 }
 
 void
