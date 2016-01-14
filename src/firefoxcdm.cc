@@ -549,6 +549,8 @@ VideoDecoder::DecodingComplete()
         worker_thread_ = nullptr;
     }
 
+    crcdm::get()->DeinitializeDecoder(cdm::kStreamTypeVideo);
+
     Release();
 }
 
