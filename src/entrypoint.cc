@@ -71,6 +71,11 @@ GMPGetAPI(const char *apiName, void *aHostAPI, void **aPluginAPI)
             *aPluginAPI = new fxcdm::VideoDecoder(static_cast<GMPVideoHost *>(aHostAPI));
             return GMPNoErr;
 
+        } else if (api_name == GMP_API_AUDIO_DECODER) {
+
+            *aPluginAPI = new fxcdm::AudioDecoder(static_cast<GMPAudioHost *>(aHostAPI));
+            return GMPNoErr;
+
         } else {
             return GMPNotImplementedErr;
         }

@@ -118,7 +118,7 @@ Module::Init(GMPDecryptorCallback *aCallback)
 {
     LOGF << format("fxcdm::Module::Init aCallback=%1%\n") % aCallback;
     host_interface = aCallback;
-    fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AND_DECODE_AUDIO |
+    fxcdm::host()->SetCapabilities(GMP_EME_CAP_DECRYPT_AUDIO |
                                    GMP_EME_CAP_DECRYPT_AND_DECODE_VIDEO);
 
     crcdm::Initialize();
@@ -550,6 +550,80 @@ VideoDecoder::DecodingComplete()
     }
 
     Release();
+}
+
+string
+GMPAudioCodec_to_string(const GMPAudioCodec &a)
+{
+    std::stringstream s;
+
+    s << format("{.mCodecType=%1%, .mChannelCount=%2%, .mBitsPerChannel=%3%, "
+         ".mSamplesPerSecond=%4%, .mExtraData=%5%, .mExtraDataLen=%6%}") % a.mCodecType %
+         a.mChannelCount % a.mBitsPerChannel % a.mSamplesPerSecond %
+         static_cast<const void *>(a.mExtraData) % a.mExtraDataLen;
+
+    return s.str();
+}
+
+void
+AudioDecoder::InitDecode(const GMPAudioCodec &aCodecSettings,
+                         GMPAudioDecoderCallback *aCallback)
+{
+    LOGF << format("fxcdm::AudioDecoder::InitDecode aCodecSettings=%1%, aCallback=%2%\n") %
+            GMPAudioCodec_to_string(aCodecSettings) % aCallback;
+
+    dec_cb_ = aCallback;
+
+    cdm::AudioDecoderConfig aconf;
+
+    switch (aCodecSettings.mCodecType) {
+    case kGMPAudioCodecAAC:
+
+        aconf.codec = cdm::AudioDecoderConfig::kCodecAac;
+        aconf.channel_count = aCodecSettings.mChannelCount;
+        aconf.bits_per_channel = aCodecSettings.mBitsPerChannel;
+        aconf.samples_per_second = aCodecSettings.mSamplesPerSecond;
+        aconf.extra_data = const_cast<uint8_t *>(aCodecSettings.mExtraData); // TODO: copy if called
+                                                                             // on another thread
+        aconf.extra_data_size = aCodecSettings.mExtraDataLen;
+
+        break;
+
+    case kGMPAudioCodecVorbis:
+    default:
+
+        LOGZ << "   audio codec not implemented\n";
+        break;
+    }
+
+    // TODO: call on worker thread
+    cdm::Status status = crcdm::get()->InitializeAudioDecoder(aconf);
+
+    LOGF << format("   InitializeAudioDecoder() returned %1%\n") % status;
+}
+
+void
+AudioDecoder::Decode(GMPAudioSamples *aEncodedSamples)
+{
+    LOGZ << format("fxcdm::AudioDecoder::Decode aEncodedSamples=%1%\n") % aEncodedSamples;
+}
+
+void
+AudioDecoder::Reset()
+{
+    LOGZ << "fxcdm::AudioDecoder::Reset (void)\n";
+}
+
+void
+AudioDecoder::Drain()
+{
+    LOGZ << "fxcdm::AudioDecoder::Drain (void)\n";
+}
+
+void
+AudioDecoder::DecodingComplete()
+{
+    LOGZ << "fxcdm::AudioDecoder::DecodingComplete (void)\n";
 }
 
 

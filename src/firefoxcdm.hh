@@ -28,6 +28,8 @@
 #include <api/gmp/gmp-async-shutdown.h>
 #include <api/gmp/gmp-video-decode.h>
 #include <api/gmp/gmp-video-host.h>
+#include <api/gmp/gmp-audio-decode.h>
+#include <api/gmp/gmp-audio-host.h>
 #include <api/crcdm/content_decryption_module.h>
 #include <lib/RefCounted.h>
 #include <memory>
@@ -162,6 +164,34 @@ private:
     GMPVideoHost            *host_api_;
 
     GMPThread               *worker_thread_ = nullptr;
+};
+
+
+class AudioDecoder final : public GMPAudioDecoder, public RefCounted
+{
+public:
+    AudioDecoder(GMPAudioHost *host_api)
+        : host_api_(host_api)
+    { AddRef(); }
+
+    virtual void
+    InitDecode(const GMPAudioCodec &aCodecSettings, GMPAudioDecoderCallback *aCallback) override;
+
+    virtual void
+    Decode(GMPAudioSamples *aEncodedSamples) override;
+
+    virtual void
+    Reset() override;
+
+    virtual void
+    Drain() override;
+
+    virtual void
+    DecodingComplete() override;
+
+private:
+    GMPAudioHost               *host_api_;
+    GMPAudioDecoderCallback    *dec_cb_ = nullptr;;
 };
 
 inline std::string
