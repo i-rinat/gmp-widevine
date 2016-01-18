@@ -109,6 +109,21 @@ index 83956b2..9aad56f 100644
    bool PreLoadLibraries(const nsAString& aPluginPath);
  #endif
    MessageLoop* GMPMessageLoop();
+diff --git a/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp b/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp
+index 867b1e8..638f1c4 100644
+--- a/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp
++++ b/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp
+@@ -179,8 +179,8 @@ GMPVideoDecoder::GMPInitDone(GMPVideoDecoderProxy* aGMP, GMPVideoHost* aHost)
+   codec.mGMPApiVersion = kGMPVersion33;
+ 
+   codec.mCodecType = kGMPVideoCodecH264;
+-  codec.mWidth = mConfig.mDisplay.width;
+-  codec.mHeight = mConfig.mDisplay.height;
++  codec.mWidth = mConfig.mImage.width;
++  codec.mHeight = mConfig.mImage.height;
+ 
+   nsTArray<uint8_t> codecSpecific;
+   codecSpecific.AppendElement(0); // mPacketizationMode.
 diff --git a/security/sandbox/linux/SandboxFilter.cpp b/security/sandbox/linux/SandboxFilter.cpp
 index 2c01b56..f1fa351 100644
 --- a/security/sandbox/linux/SandboxFilter.cpp
