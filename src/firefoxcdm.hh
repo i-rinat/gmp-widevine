@@ -137,13 +137,14 @@ private:
             : buf_type(GMP_BufferInvalid)
             , duration(0)
             , timestamp(0)
+            , is_key_frame(false)
         {}
 
-        cdm::InputBuffer     inp_buf;
         GMPBufferType        buf_type;
         std::vector<uint8_t> buf;
         uint64_t             duration;
         uint64_t             timestamp;
+        bool                 is_key_frame;
         std::vector<uint8_t> key_id;
         std::vector<uint8_t> iv;
         std::vector<cdm::SubsampleEntry> subsamples;
@@ -164,6 +165,8 @@ private:
     GMPVideoHost            *host_api_;
 
     GMPThread               *worker_thread_ = nullptr;
+
+    std::vector<uint8_t>     extra_data_annexb_;
 };
 
 

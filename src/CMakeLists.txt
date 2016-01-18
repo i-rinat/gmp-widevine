@@ -8,4 +8,4 @@ add_library(widevine SHARED
     firefoxcdm.cc
 )
 
-target_link_libraries(widevine ${SYMBOLMAP})
+target_link_libraries(widevine ${SYMBOLMAP} clearkey-excerpts)

@@ -31,6 +31,7 @@
 #include <arpa/inet.h>
 #include <memory>
 #include <lib/gmp-task-utils.h>
+#include <lib/AnnexB.h>
 
 
 namespace fxcdm {
@@ -348,8 +349,12 @@ VideoDecoder::InitDecode(const GMPVideoCodec &aCodecSettings, const uint8_t *aCo
         video_decoder_config.coded_size.width = aCodecSettings.mWidth;
         video_decoder_config.coded_size.height = aCodecSettings.mHeight;
 
-        video_decoder_config.extra_data = const_cast<uint8_t *>(aCodecSpecific) + 1;
-        video_decoder_config.extra_data_size = aCodecSpecificLength - 1;
+        vector<uint8_t> extra_data{aCodecSpecific + 1, aCodecSpecific + aCodecSpecificLength};
+
+        AnnexB::ConvertConfig(extra_data, extra_data_annexb_);
+
+        video_decoder_config.extra_data = nullptr;
+        video_decoder_config.extra_data_size = 0;
 
         break;
     }
@@ -380,20 +385,14 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
     ddata->buf_type = aInputFrame->BufferType();
     ddata->buf.assign(aInputFrame->Buffer(), aInputFrame->Buffer() + aInputFrame->Size());
 
-    ddata->inp_buf.data =      ddata->buf.data();
-    ddata->inp_buf.data_size = ddata->buf.size();
+    ddata->is_key_frame = (aInputFrame->FrameType() == kGMPKeyFrame);
 
     const GMPEncryptedBufferMetadata *metadata = aInputFrame->GetDecryptionData();
     LOGF << format("   metadata = %1%\n") % static_cast<const void *>(metadata);
 
     if (metadata) {
         ddata->key_id.assign(metadata->KeyId(), metadata->KeyId() + metadata->KeyIdSize());
-        ddata->inp_buf.key_id =      ddata->key_id.data();
-        ddata->inp_buf.key_id_size = ddata->key_id.size();
-
         ddata->iv.assign(metadata->IV(), metadata->IV() + metadata->IVSize());
-        ddata->inp_buf.iv =      ddata->iv.data();
-        ddata->inp_buf.iv_size = ddata->iv.size();
 
         LOGF << format("   key = %1%\n") % to_hex_string(metadata->KeyId(), metadata->KeyIdSize());
         LOGF << format("   IV = %1%\n") % to_hex_string(metadata->IV(), metadata->IVSize());
@@ -402,14 +401,10 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
                                  metadata->CipherBytes());
         LOGF << format("   timestamp = %1%\n") % aInputFrame->TimeStamp();
 
-        ddata->inp_buf.num_subsamples = metadata->NumSubsamples();
-        for (uint32_t k = 0; k < ddata->inp_buf.num_subsamples; k ++)
+        for (uint32_t k = 0; k < metadata->NumSubsamples(); k ++)
             ddata->subsamples.emplace_back(metadata->ClearBytes()[k], metadata->CipherBytes()[k]);
-
-        ddata->inp_buf.subsamples = &ddata->subsamples[0];
     }
 
-    ddata->inp_buf.timestamp = aInputFrame->TimeStamp();
     ddata->timestamp = aInputFrame->TimeStamp();
     ddata->duration = aInputFrame->Duration();
 
@@ -431,26 +426,43 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
         return;
     }
 
-    uint8_t *pos = ddata->buf.data();
-    uint8_t *last = pos + ddata->buf.size();
+    AnnexB::ConvertFrameInPlace(ddata->buf);
 
-    while (pos < last) {
-        if (pos + 4 > last)
-            break;
+    if (ddata->is_key_frame) {
+        LOGF << "   is a key frame\n";
+        // insert extra data
+        ddata->buf.insert(ddata->buf.begin(), extra_data_annexb_.begin(), extra_data_annexb_.end());
+        LOGF << format("   new data size = %1%\n") % ddata->buf.size();
 
-        uint32_t len = 0;
-        const uint32_t delimiter = htonl(0x01);
+        // update subsample information, if any
+        if (ddata->subsamples.size() > 0) {
+            ddata->subsamples[0].clear_bytes += extra_data_annexb_.size();
+        }
 
-        memcpy(&len, pos, sizeof(len));
-        memcpy(pos, &delimiter, sizeof(delimiter));
-        pos += sizeof(len);
-        len = ntohl(len);
-
-        pos += len;
+        std::stringstream s;
+        for (auto k: ddata->subsamples)
+            s << format(" (%1%, %2%)") % k.clear_bytes % k.cipher_bytes;
+        LOGF << format("   subsamples =%1%\n") % s.str();
     }
 
+    cdm::InputBuffer inp_buf;
+
+    inp_buf.data =        ddata->buf.data();
+    inp_buf.data_size =   ddata->buf.size();
+
+    inp_buf.key_id =      ddata->key_id.data();
+    inp_buf.key_id_size = ddata->key_id.size();
+
+    inp_buf.iv =          ddata->iv.data();
+    inp_buf.iv_size =     ddata->iv.size();
+
+    inp_buf.subsamples =     ddata->subsamples.data();
+    inp_buf.num_subsamples = ddata->subsamples.size();
+
+    inp_buf.timestamp = ddata->timestamp;
+
     auto crvf = make_shared<crcdm::VideoFrame>();
-    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(ddata->inp_buf, crvf.get());
+    cdm::Status status = crcdm::get()->DecryptAndDecodeFrame(inp_buf, crvf.get());
     LOGF << format("   DecryptAndDecodeFrame returned %1%\n") % status;
 
     if (status == cdm::kNeedMoreData) {

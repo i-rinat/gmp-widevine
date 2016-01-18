@@ -6,4 +6,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=implicit-function-declaration")
 
 include_directories(.)
 
+add_subdirectory(lib)
 add_subdirectory(src)
