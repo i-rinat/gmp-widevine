@@ -125,7 +125,7 @@ index 867b1e8..638f1c4 100644
    nsTArray<uint8_t> codecSpecific;
    codecSpecific.AppendElement(0); // mPacketizationMode.
 diff --git a/security/sandbox/linux/SandboxFilter.cpp b/security/sandbox/linux/SandboxFilter.cpp
-index 2c01b56..f1fa351 100644
+index 2c01b56..e6fc8ee 100644
 --- a/security/sandbox/linux/SandboxFilter.cpp
 +++ b/security/sandbox/linux/SandboxFilter.cpp
 @@ -145,7 +145,11 @@ public:
@@ -140,11 +140,17 @@ index 2c01b56..f1fa351 100644
          .Else(InvalidSyscall());
      }
      case __NR_gettimeofday:
-@@ -711,6 +715,9 @@ public:
+@@ -711,6 +715,15 @@ public:
          .Else(InvalidSyscall());
      }
  
 +    case __NR_brk:
++    case __NR_geteuid:
++    case __NR_sched_getparam:
++    case __NR_sched_getscheduler:
++    case __NR_sched_get_priority_min:
++    case __NR_sched_get_priority_max:
++    case __NR_sched_setscheduler:
 +      return Allow();
 +
      default:
