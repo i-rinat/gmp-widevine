@@ -496,8 +496,8 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
         // TODO: why widevine provides invalid offsets?
 
         uint32_t y_offset = 0;
-        uint32_t u_offset = y_offset + y_stride * sz.height;
-        uint32_t v_offset = u_offset + u_stride * sz.height / 2;
+        uint32_t v_offset = y_offset + y_stride * sz.height;
+        uint32_t u_offset = v_offset + v_stride * sz.height / 2;
 
         crvf->FrameBuffer()->Destroy();
 
