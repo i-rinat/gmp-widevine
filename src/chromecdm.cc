@@ -43,19 +43,21 @@ class BufferImpl final : public cdm::Buffer {
 public:
     BufferImpl(uint32_t capacity)
     {
-        LOGF << boost::format("cdm::BufferImpl::BufferImpl capacity=%1%\n") % capacity;
+        LOGF << boost::format("cdm::BufferImpl::BufferImpl this=%1%, capacity=%2%\n") % this %
+                capacity;
         SetSize(capacity);
     }
 
     ~BufferImpl()
     {
-        LOGF << "cdm::BufferImpl::~BufferImpl (void)\n";
+        LOGF << boost::format("cdm::BufferImpl::~BufferImpl this=%1%\n") % this;
     }
 
     virtual void
     Destroy() override {
         LOGF << "cdm::BufferImpl::Destroy (void)\n";
         free(data_); data_ = nullptr; sz_ = 0;
+        delete this;
     }
 
     virtual uint32_t

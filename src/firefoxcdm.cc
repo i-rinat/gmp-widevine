@@ -98,6 +98,12 @@ public:
        return timestamp_;
    }
 
+    ~DecryptedBlockImpl()
+    {
+        if (buffer_)
+            buffer_->Destroy();
+    }
+
 private:
     int64_t      timestamp_ = 0;
     cdm::Buffer *buffer_    = nullptr;
@@ -492,6 +498,9 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
         uint32_t y_offset = 0;
         uint32_t u_offset = y_offset + y_stride * sz.height;
         uint32_t v_offset = u_offset + u_stride * sz.height / 2;
+
+        crvf->FrameBuffer()->Destroy();
+
         fxcdm::get_platform_api()->runonmainthread(
             WrapTaskRefCounted(this, &VideoDecoder::DecodedTaskCallDecoded, raw, sz, y_offset,
                                u_offset, v_offset, y_stride, u_stride, v_stride, ddata->timestamp,
