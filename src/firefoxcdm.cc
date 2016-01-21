@@ -29,7 +29,6 @@
 #include "chromecdm.hh"
 #include "log.hh"
 #include <arpa/inet.h>
-#include <memory>
 #include <lib/gmp-task-utils.h>
 #include <lib/AnnexB.h>
 
@@ -474,8 +473,28 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
     } else if (status == cdm::kSuccess) {
 
         LOGF << "   scheduling DecodedTaskCallDecoded\n";
+
+        shared_ptr<vector<uint8_t>> raw(new vector<uint8_t>);
+        cdm::Size sz = crvf->Size();
+        auto crbuf = crvf->FrameBuffer();
+        raw->assign(crbuf->Data(), crbuf->Data() + crbuf->Size());
+
+        uint32_t y_stride = crvf->Stride(cdm::VideoFrame::kYPlane);
+        uint32_t u_stride = crvf->Stride(cdm::VideoFrame::kUPlane);
+        uint32_t v_stride = crvf->Stride(cdm::VideoFrame::kVPlane);
+
+        // uint32_t y_offset = crvf->PlaneOffset(cdm::VideoFrame::kYPlane);
+        // uint32_t u_offset = crvf->PlaneOffset(cdm::VideoFrame::kUPlane);
+        // uint32_t v_offset = crvf->PlaneOffset(cdm::VideoFrame::kVPlane);
+
+        // TODO: why widevine provides invalid offsets?
+
+        uint32_t y_offset = 0;
+        uint32_t u_offset = y_offset + y_stride * sz.height;
+        uint32_t v_offset = u_offset + u_stride * sz.height / 2;
         fxcdm::get_platform_api()->runonmainthread(
-            WrapTaskRefCounted(this, &VideoDecoder::DecodedTaskCallDecoded, crvf, ddata->timestamp,
+            WrapTaskRefCounted(this, &VideoDecoder::DecodedTaskCallDecoded, raw, sz, y_offset,
+                               u_offset, v_offset, y_stride, u_stride, v_stride, ddata->timestamp,
                                ddata->duration));
 
     } else {
@@ -486,10 +505,15 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
 }
 
 void
-VideoDecoder::DecodedTaskCallDecoded(shared_ptr<crcdm::VideoFrame> crvf, uint64_t timestamp,
-                                     uint64_t duration)
+VideoDecoder::DecodedTaskCallDecoded(shared_ptr<vector<uint8_t>> raw, cdm::Size sz,
+                                     uint32_t y_offset, uint32_t u_offset, uint32_t v_offset,
+                                     uint32_t y_stride, uint32_t u_stride, uint32_t v_stride,
+                                     uint64_t timestamp, uint64_t duration)
 {
-    LOGF << format("fxcdm::VideoDecoder::DecodedTaskCallDecoded crvf=%1%\n") % crvf.get();
+    LOGF << format("fxcdm::VideoDecoder::DecodedTaskCallDecoded raw.size()=%1%, sz={.width=%2%, "
+            ".height=%3%}, y_offset=%4%, u_offset=%5%, v_offset=%6%, y_stride=%7%, u_stride=%8%, "
+            "v_stride=%9%, timestamp=%10%, duration=%11%\n") % raw->size() % sz.width % sz.height %
+            y_offset % u_offset % v_offset % y_stride % u_stride % v_stride % timestamp % duration;
 
     GMPVideoFrame *fxvf = nullptr;
     auto err = host_api_->CreateFrame(kGMPI420VideoFrame, &fxvf);
@@ -498,23 +522,12 @@ VideoDecoder::DecodedTaskCallDecoded(shared_ptr<crcdm::VideoFrame> crvf, uint64_
         return;
     }
 
-    cdm::Buffer *crbuf = crvf->FrameBuffer();
     auto fxvf_i420 = static_cast<GMPVideoi420Frame *>(fxvf);
-    auto sz = crvf->Size();
-    fxvf_i420->CreateFrame(crvf->Stride(cdm::VideoFrame::kYPlane) * sz.height,
-                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kYPlane),
-
-                           crvf->Stride(cdm::VideoFrame::kUPlane) * sz.height / 2,
-                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kUPlane),
-
-                           crvf->Stride(cdm::VideoFrame::kVPlane) * sz.height / 2,
-                           crbuf->Data() + crvf->PlaneOffset(cdm::VideoFrame::kVPlane),
-
+    fxvf_i420->CreateFrame(y_stride * sz.height,     raw->data() + y_offset,
+                           u_stride * sz.height / 2, raw->data() + u_offset,
+                           v_stride * sz.height / 2, raw->data() + v_offset,
                            sz.width, sz.height,
-
-                           crvf->Stride(cdm::VideoFrame::kYPlane),
-                           crvf->Stride(cdm::VideoFrame::kUPlane),
-                           crvf->Stride(cdm::VideoFrame::kVPlane));
+                           y_stride, u_stride, v_stride);
 
     fxvf_i420->SetTimestamp(timestamp);
     fxvf_i420->SetDuration(duration);

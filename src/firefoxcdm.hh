@@ -34,6 +34,7 @@
 #include <lib/RefCounted.h>
 #include <memory>
 #include <sstream>
+#include <vector>
 #include <boost/format.hpp>
 #include "chromecdm.hh"
 
@@ -157,8 +158,10 @@ private:
     DecodeTask(std::shared_ptr<DecodeData> ddata);
 
     void
-    DecodedTaskCallDecoded(std::shared_ptr<crcdm::VideoFrame> crvf, uint64_t timestamp,
-                           uint64_t duration);
+    DecodedTaskCallDecoded(std::shared_ptr<std::vector<uint8_t>> raw, cdm::Size sz,
+                           uint32_t y_offset, uint32_t u_offset, uint32_t v_offset,
+                           uint32_t y_stride, uint32_t u_stride, uint32_t v_stride,
+                           uint64_t timestamp, uint64_t duration);
 
 
     GMPVideoDecoderCallback *dec_cb_ = nullptr;
