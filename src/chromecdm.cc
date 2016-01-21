@@ -41,26 +41,51 @@ cdm::ContentDecryptionModule *crcdm_instance = nullptr;
 
 class BufferImpl final : public cdm::Buffer {
 public:
-    BufferImpl(uint32_t capacity) { SetSize(capacity); }
+    BufferImpl(uint32_t capacity)
+    {
+        LOGF << boost::format("cdm::BufferImpl::BufferImpl capacity=%1%\n") % capacity;
+        SetSize(capacity);
+    }
+
+    ~BufferImpl()
+    {
+        LOGF << "cdm::BufferImpl::~BufferImpl (void)\n";
+    }
 
     virtual void
-    Destroy() override { free(data_); data_ = nullptr; sz_ = 0; }
+    Destroy() override {
+        LOGF << "cdm::BufferImpl::Destroy (void)\n";
+        free(data_); data_ = nullptr; sz_ = 0;
+    }
 
     virtual uint32_t
-    Capacity() const override { return sz_;}
+    Capacity() const override
+    {
+        LOGF << "cdm::BufferImpl::Capacity (void)\n";
+        return sz_;
+    }
 
     virtual uint8_t *
-    Data() override { return data_; }
+    Data() override
+    {
+        LOGF << "cdm::BufferImpl::Data (void)\n";
+        return data_;
+    }
 
     virtual void
     SetSize(uint32_t size) override
     {
+        LOGF << boost::format("cdm::BufferImpl::SetSize size=%1%\n") % size;
         data_ = static_cast<uint8_t *>(realloc(static_cast<void *>(data_), size));
         sz_ = size;
     }
 
     virtual uint32_t
-    Size() const { return sz_; }
+    Size() const
+    {
+        LOGF << "cdm::BufferImpl::Size (void)\n";
+        return sz_;
+    }
 
 private:
     uint8_t *data_ = nullptr;

@@ -175,6 +175,8 @@ public:
         return timestamp_;
     }
 
+    ~VideoFrame() { LOGF << "crcdm::VideoFrame::~VideoFrame\n"; }
+
 private:
     int64_t             timestamp_ = 0;
     cdm::VideoFormat    fmt_ = cdm::kUnknownVideoFormat;
