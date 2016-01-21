@@ -226,9 +226,8 @@ public:
     {
         LOGF << "crcdm::Host::GetCurrentWallTime (void)\n";
 
-        int64_t milliseconds = 0;
-        fxcdm::get_platform_api()->getcurrenttime(&milliseconds);
-
+        auto wt = std::chrono::system_clock::now().time_since_epoch();
+        int64_t milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(wt).count();
         double t = milliseconds / 1e3;
         LOGF << format("   --> %1$.3f\n") % t;
 
