@@ -384,6 +384,7 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
             static_cast<const void *>(aInputFrame->Buffer()) % aInputFrame->Size();
 
     LOGF << format("   BufferType() = %1%\n") % aInputFrame->BufferType();
+    LOGF << format("   timestamp = %1%\n") % aInputFrame->TimeStamp();
 
     auto ddata = make_shared<DecodeData>();
 
@@ -404,7 +405,7 @@ VideoDecoder::Decode(GMPVideoEncodedFrame *aInputFrame, bool aMissingFrames,
         LOGF << format("   subsamples (clear, cipher) = %1%\n") %
             subsamples_to_string(metadata->NumSubsamples(), metadata->ClearBytes(),
                                  metadata->CipherBytes());
-        LOGF << format("   timestamp = %1%\n") % aInputFrame->TimeStamp();
+
 
         for (uint32_t k = 0; k < metadata->NumSubsamples(); k ++)
             ddata->subsamples.emplace_back(metadata->ClearBytes()[k], metadata->CipherBytes()[k]);
