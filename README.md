@@ -24,4 +24,5 @@ will have to use LD_PRELOAD to preload
 itself due to sandboxing.
 
 To test, go to [https://shaka-player-demo.appspot.com] and select a
-stream with "Widevine". Some of them work, some do not.
+stream with "Widevine" or "multi-DRM". You could also try Netflix or
+Google Play, but you have to change User-Agent to Chrome.
