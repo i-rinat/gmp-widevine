@@ -504,7 +504,7 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
 
         fxcdm::get_platform_api()->runonmainthread(
             WrapTaskRefCounted(this, &VideoDecoder::DecodedTaskCallDecoded, raw, sz, y_offset,
-                               u_offset, v_offset, y_stride, u_stride, v_stride, ddata->timestamp,
+                               u_offset, v_offset, y_stride, u_stride, v_stride, crvf->Timestamp(),
                                ddata->duration));
 
     } else {
