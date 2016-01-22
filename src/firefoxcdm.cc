@@ -490,15 +490,14 @@ VideoDecoder::DecodeTask(shared_ptr<DecodeData> ddata)
         uint32_t u_stride = crvf->Stride(cdm::VideoFrame::kUPlane);
         uint32_t v_stride = crvf->Stride(cdm::VideoFrame::kVPlane);
 
-        // uint32_t y_offset = crvf->PlaneOffset(cdm::VideoFrame::kYPlane);
-        // uint32_t u_offset = crvf->PlaneOffset(cdm::VideoFrame::kUPlane);
-        // uint32_t v_offset = crvf->PlaneOffset(cdm::VideoFrame::kVPlane);
+        uint32_t y_offset = crvf->PlaneOffset(cdm::VideoFrame::kYPlane);
+        uint32_t u_offset = crvf->PlaneOffset(cdm::VideoFrame::kUPlane);
+        uint32_t v_offset = crvf->PlaneOffset(cdm::VideoFrame::kVPlane);
 
-        // TODO: why widevine provides invalid offsets?
-
-        uint32_t y_offset = 0;
-        uint32_t v_offset = y_offset + y_stride * sz.height;
-        uint32_t u_offset = v_offset + v_stride * sz.height / 2;
+        // TODO: why widevine provides invalid offsets when AddressSanitizer is used?
+        // uint32_t y_offset = 0;
+        // uint32_t v_offset = y_offset + y_stride * sz.height;
+        // uint32_t u_offset = v_offset + v_stride * sz.height / 2;
 
         crvf->FrameBuffer()->Destroy();
 
