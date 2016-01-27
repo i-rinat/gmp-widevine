@@ -109,6 +109,40 @@ index 83956b2..9aad56f 100644
    bool PreLoadLibraries(const nsAString& aPluginPath);
  #endif
    MessageLoop* GMPMessageLoop();
+diff --git a/dom/media/gmp/GMPDecryptorParent.cpp b/dom/media/gmp/GMPDecryptorParent.cpp
+index 60d206e..48f3315 100644
+--- a/dom/media/gmp/GMPDecryptorParent.cpp
++++ b/dom/media/gmp/GMPDecryptorParent.cpp
+@@ -169,15 +169,20 @@ GMPDecryptorParent::Decrypt(uint32_t aId,
+   }
+ 
+   // Caller should ensure parameters passed in are valid.
+-  MOZ_ASSERT(!aBuffer.IsEmpty() && aCrypto.mValid);
+-
+-  GMPDecryptionData data(aCrypto.mKeyId,
+-                         aCrypto.mIV,
+-                         aCrypto.mPlainSizes,
+-                         aCrypto.mEncryptedSizes,
+-                         aCrypto.mSessionIds);
+-
+-  Unused << SendDecrypt(aId, aBuffer, data);
++  MOZ_ASSERT(!aBuffer.IsEmpty());
++
++  if (aCrypto.mValid) {
++    GMPDecryptionData data(aCrypto.mKeyId,
++                           aCrypto.mIV,
++                           aCrypto.mPlainSizes,
++                           aCrypto.mEncryptedSizes,
++                           aCrypto.mSessionIds);
++
++    Unused << SendDecrypt(aId, aBuffer, data);
++  } else {
++    GMPDecryptionData data;
++    Unused << SendDecrypt(aId, aBuffer, data);
++  }
+ }
+ 
+ bool
 diff --git a/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp b/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp
 index 867b1e8..638f1c4 100644
 --- a/dom/media/platforms/agnostic/gmp/GMPVideoDecoder.cpp
