@@ -26,3 +26,8 @@ itself due to sandboxing.
 To test, go to [https://shaka-player-demo.appspot.com] and select a
 stream with "Widevine" or "multi-DRM". You could also try Netflix or
 Google Play, but you have to change User-Agent to Chrome.
+
+Firefox 47 (and later)
+----------------------
+
+There is less invasive way: see [how-to-enable-on-firefox-47.md](how-to-enable-on-firefox-47.md).
