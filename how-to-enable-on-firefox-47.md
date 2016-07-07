@@ -77,9 +77,14 @@ $PROFILE/gmp-widevinecdm/1.4.8.885/libwidevinecdm.so
 $PROFILE/gmp-widevinecdm/1.4.8.885/manifest.json
 ```
 
-Then swith to Firefox again, open `about:config` page. Create string
+Then switch to Firefox again, open `about:config` page. Create string
 parameter (right mouse button, New, String) with name
 `media.gmp-widevinecdm.version` and value `1.4.8.885`.
+
+(For some reason Firefox could try to remove files in `1.4.8.885`
+directory. To prevent that you may remove write bit from directory
+permissions (`chmod a-w 1.4.8.885`), and also make the directory owned
+by `root` user.)
 
 That it. Go to http://shaka-player-demo.appspot.com/demo/ and try
 some Widevine protected video.
