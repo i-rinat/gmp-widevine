@@ -31,3 +31,9 @@ Firefox 47 (and later)
 ----------------------
 
 There is less invasive way: see [how-to-enable-on-firefox-47.md](how-to-enable-on-firefox-47.md).
+
+
+Firefox 49 (and later)
+----------------------
+
+Firefox 49 have full Widevine support. (On Linux too).
